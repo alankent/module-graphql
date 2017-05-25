@@ -1,6 +1,6 @@
 {
-    "name": "alankent/graphql-magento-module",
-    "description": "eCommerce Platform for Growth (Community Edition)",
+    "name": "alankent/module-graphql",
+    "description": "GraphQL Magento Module (experimental)",
     "type": "magento2-module",
     "version": "0.0.1",
     "require": {
