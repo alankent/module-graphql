@@ -1,0 +1,18 @@
+{
+    "name": "alankent/graphql-magento-module",
+    "description": "eCommerce Platform for Growth (Community Edition)",
+    "type": "magento2-module",
+    "version": "0.0.1",
+    "require": {
+        "webonyx/graphql-php": "^0.9"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "AlanKent\\GraphQL\\": ""
+        }
+    }
+}
+}
