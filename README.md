@@ -1,2 +1,2 @@
-# graphql-magento-module
+# module-graphql
 GraphQL server for Magento (experimental)
