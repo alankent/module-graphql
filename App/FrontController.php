@@ -9,6 +9,14 @@ use Magento\Framework\App\AreaList;
 use Magento\Framework\Config\ScopeInterface;
 use Magento\Framework\HTTP\PhpEnvironment\Request as HttpRequest;
 
+//use \GraphQL\Examples\Blog\Types;
+//use \GraphQL\Examples\Blog\AppContext;
+//use \GraphQL\Examples\Blog\Data\DataSource;
+use \GraphQL\Schema;
+use \GraphQL\GraphQL;
+use \GraphQL\Type\Definition\Config;
+use \GraphQL\Error\FormattedError;
+
 /**
  * Front controller for the 'graphql' area. Converts web service requests
  * (HTTP POST of GraphQL queries) into appropriate PHP function calls
@@ -58,15 +66,30 @@ class FrontController implements FrontControllerInterface
                 throw new \Exception("Unsupported URL path: instead of {$req->getPathInfo()} use $graphqlPath.", 404);
             }
 
-            if (!$req->isPost()) {
-                throw new \Exception("Only POST requests containing GraphQL requests are supported.");
+            // Parse incoming query and variables
+            if ($req->isPost()) {
+                $contentType = $req->getHeader('Content-Type', '');
+                if (strpos($contentType, 'application/json') !== false) { // TODO: strpos??
+                    $payload = $req->getContent();
+                    $data = json_decode($payload, true);
+                    $query = isset($data['query']) ? $data['query'] : '';
+                    $variablesStr = isset($data['variables']) ? $data['variables'] : [];
+                } else {
+                    $query = $req->getParam('query');
+                    $variablesStr = $req->getParam('variables');
+                }
+            } else if ($req->isGet()) {
+                $query = $req->getParam('query');
+                $variablesStr = $req->getParam('variables');
+            } else {
+                throw new \Exception("Expected POST or GET request.", 404);
             }
 
-            // Decode JSON request.
-            $graphqlRequest = $req->getContent();
+            // Parse variables as JSON
+            $variables = json_decode($variablesStr, true);
 
             // Process the request.
-            $graphqlResponse = $this->graphql($graphqlRequest);
+            $graphqlResponse = $this->graphql($query, $variables);
 
             // Serialize the result.
             /** @var \Magento\Framework\Controller\Result\Json $result */
@@ -89,14 +112,38 @@ class FrontController implements FrontControllerInterface
     /**
      * Process a GraphQL request.
      * @param String $request The GraphQL to parse and process.
+     * @param String $contentType The request content type.
      * @return array Associative array to encode as JSON.
      */
-    private function graphql($request)
+    private function graphql($query, $variables)
     {
-	//TODO!
-        $response = array();
-        $response['version'] = "1.0";
+        try {
+            // Initialize our fake data source
+            //DataSource::init();
 
-        return $response;
+            // Prepare context that will be available in all field resolvers (as 3rd argument):
+            //$appContext = new AppContext();
+            //$appContext->viewer = DataSource::findUser('1'); // simulated "currently logged-in user"
+            //$appContext->rootUrl = 'http://localhost:8080';
+            //$appContext->request = $_REQUEST;
+
+            // GraphQL schema to be passed to query executor:
+            $schema = new Schema([
+                'query' => new QueryType()
+            ]);
+            $result = GraphQL::execute(
+                $schema,
+                $query,
+                null,
+                null,//$appContext,
+                (array) $variables
+            );
+        } catch (\Exception $error) {
+            $httpStatus = 500;
+            $result['errors'] = [FormattedError::create('Unexpected Error')];
+        }
+
+        return $result;
     }
 }
+
