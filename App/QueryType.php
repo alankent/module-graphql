@@ -13,7 +13,8 @@ class QueryType extends ObjectType
         $config = [
             'name' => 'Query',
             'fields' => [
-                'hello' => Type::string()
+                'hello' => Type::string(),
+                //'me' => new UserType()
             ],
             'resolveField' => function($val, $args, $context, ResolveInfo $info) {
                 return $this->{$info->fieldName}($val, $args, $context, $info);
@@ -25,5 +26,14 @@ class QueryType extends ObjectType
     public function hello()
     {
         return 'Your graphql-php endpoint is ready! Use GraphiQL to browse API';
+    }
+
+    public function me()
+    {
+        $me = new UserType();
+        $me->id = '1';
+        $me->firstName = 'Alan';
+        $me->lastName = 'Kent';
+        return $me;
     }
 }
