@@ -16,6 +16,7 @@ class MagentoCatalogType extends ObjectType
     {
         $config = [
             'name' => 'Magento_Catalog',
+            'description' => 'Mutating service contracts.',
             'fields' => [
                 'product' => [
                     'type' => new ProductType(),
@@ -35,29 +36,30 @@ class MagentoCatalogType extends ObjectType
                             'description' => 'The store view id, or zero for the default store view.',
                             'defaultValue' => 0
                         ]
-                    ]
+                    ],
+                    'resolve' => function($val, $args, $context, $info) {
+                        $sc = $context->getServiceContract('Magento\Catalog\Api\ProductRepositoryInterface');
+                        if (isset($args['id']) && isset($args['sku'])) {
+                            throw new \Exception('Specify either "sku" or "id", not both.');
+                        }
+                        if (isset($args['id'])) {
+                            return new ProductValue($sc->getById($args['id'], false, $args['storeId']));
+                        }
+                        if (isset($args['sku'])) {
+                            return new ProductValue($sc->get($args['sku'], false, $args['storeId']));
+                        }
+                        throw new \Exception('You must specify either "sku" or "id".');
+                    }
                 ]
             ],
-            'resolveField' => function($val, $args, $context, ResolveInfo $info) {
-                return $this->{$info->fieldName}($val, $args, $context, $info);
-            }
+            //'resolveField' => function($val, $args, $context, ResolveInfo $info) {
+                //return self::{$info->fieldName}($val, $args, $context, $info);
+            //}
         ];
         parent::__construct($config);
     }
 
-    public function product($val, $args, $context, $info)
-    {
-        $sc = $context->getServiceContract('Magento\Catalog\Api\ProductRepositoryInterface');
-        if (isset($args['id'])) {
-            if (isset($args['sku'])) {
-                throw new Exception('Specify either "sku" or "id", not both.');
-            } else {
-                return new ProductValue($sc->getById($args['id'], false, $args['storeId']));
-            }
-        } else if (isset($args['sku'])) {
-            return new ProductValue($sc->get($args['sku'], false, $args['storeId']));
-        } else {
-            throw new Exception('Specify either "sku" or "id".');
-        }
-    }
+    //public static function product($val, $args, $context, $info)
+    //{
+    //}
 }

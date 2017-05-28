@@ -19,11 +19,18 @@ class QueryType extends ObjectType
                     'description' => 'Returns a simple greeting (Hellow World!) message.'
                 ],
                 //'me' => new UserType()
+                /*
                 'catalog' => [
                     'type' => new MagentoCatalogType(),
                     'description' => 'Magento Catalog module type',
                     'resolve' => function() { return 'XYZ'; }
-                ]
+                ],
+                */
+                'entities' => [
+                    'type' => new EntitiesType(),
+                    'description' => 'All entities exposed for querying.',
+                    'resolve' => function() { return 'XYZ'; }
+                ],
             ],
             'resolveField' => function($val, $args, $context, ResolveInfo $info) {
                 return $this->{$info->fieldName}($val, $args, $context, $info);
