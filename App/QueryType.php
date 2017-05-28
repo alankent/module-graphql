@@ -12,9 +12,18 @@ class QueryType extends ObjectType
     {
         $config = [
             'name' => 'Query',
+            'description' => 'Query type for all supported queries.',
             'fields' => [
-                'hello' => Type::string(),
+                'hello' => [
+                    'type' => Type::string(),
+                    'description' => 'Returns a simple greeting (Hellow World!) message.'
+                ],
                 //'me' => new UserType()
+                'catalog' => [
+                    'type' => new MagentoCatalogType(),
+                    'description' => 'Magento Catalog module type',
+                    'resolve' => function() { return 'XYZ'; }
+                ]
             ],
             'resolveField' => function($val, $args, $context, ResolveInfo $info) {
                 return $this->{$info->fieldName}($val, $args, $context, $info);

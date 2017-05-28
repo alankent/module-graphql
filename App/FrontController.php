@@ -8,6 +8,7 @@ use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\App\AreaList;
 use Magento\Framework\Config\ScopeInterface;
 use Magento\Framework\HTTP\PhpEnvironment\Request as HttpRequest;
+use AlanKent\GraphQL\App\Context;
 
 //use \GraphQL\Examples\Blog\Types;
 //use \GraphQL\Examples\Blog\AppContext;
@@ -30,19 +31,25 @@ class FrontController implements FrontControllerInterface
     /** @var string */
     private $areaFrontName;
 
+    /** @var Context */
+    private $context;
+
     /**
      * FrontController constructor.
      * @param ResultFactory $resultFactory
      * @param AreaList $areaList
      * @param ScopeInterface $configScope
+     * @param Context $context
      */
     public function __construct(
         ResultFactory $resultFactory,
         AreaList $areaList,
-        ScopeInterface $configScope
+        ScopeInterface $configScope,
+        Context $context
     ) {
         $this->resultFactory = $resultFactory;
         $this->areaFrontName = $areaList->getFrontName($configScope->getCurrentScope());
+        $this->context = $context;
     }
 
     /**
@@ -73,20 +80,18 @@ class FrontController implements FrontControllerInterface
                     $payload = $req->getContent();
                     $data = json_decode($payload, true);
                     $query = isset($data['query']) ? $data['query'] : '';
-                    $variablesStr = isset($data['variables']) ? $data['variables'] : [];
+                    $variables = isset($data['variables']) ? $data['variables'] : [];
                 } else {
                     $query = $req->getParam('query');
-                    $variablesStr = $req->getParam('variables');
+                    $variables = json_decode($req->getParam('variables'), true);
                 }
-            } else if ($req->isGet()) {
+            } else /*if ($req->isGet())*/ {
                 $query = $req->getParam('query');
-                $variablesStr = $req->getParam('variables');
-            } else {
-                throw new \Exception("Expected POST or GET request.", 404);
-            }
+                $variables = json_decode($req->getParam('variables'), true);
 
-            // Parse variables as JSON
-            $variables = json_decode($variablesStr, true);
+            //} else {
+                //throw new \Exception("Expected POST or GET request.", 404);
+            }
 
             // Process the request.
             $graphqlResponse = $this->graphql($query, $variables);
@@ -135,7 +140,7 @@ class FrontController implements FrontControllerInterface
                 $schema,
                 $query,
                 null,
-                null,//$appContext,
+                $this->context,
                 (array) $variables
             );
         } catch (\Exception $error) {
