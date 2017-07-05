@@ -8,7 +8,11 @@ use GraphQL\Type\Definition\Type;
 
 class QueryType extends ObjectType
 {
-    public function __construct()
+    /**
+     * Constructor.
+     * @param \AlanKent\GraphQL\App\AutoEntitiesTypeFactory $autoFactory
+     */
+    public function __construct(\AlanKent\GraphQL\App\AutoEntitiesTypeFactory $autoFactory)
     {
         $config = [
             'name' => 'Query',
@@ -31,6 +35,11 @@ class QueryType extends ObjectType
                     'description' => 'All entities exposed for querying.',
                     'resolve' => function() { return 'XYZ'; }
                 ],
+                //'auto' => [
+                    //'type' => $autoFactory->create(),
+                    //'description' => 'Service contract entities.',
+                    //'resolve' => function() { return null; }
+                //],
             ],
             'resolveField' => function($val, $args, $context, ResolveInfo $info) {
                 return $this->{$info->fieldName}($val, $args, $context, $info);

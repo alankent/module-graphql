@@ -34,22 +34,28 @@ class FrontController implements FrontControllerInterface
     /** @var Context */
     private $context;
 
+    /** @var QueryTypeFactory */
+    private $queryTypeFactory;
+
     /**
      * FrontController constructor.
      * @param ResultFactory $resultFactory
      * @param AreaList $areaList
      * @param ScopeInterface $configScope
      * @param Context $context
+     * @param QueryTypeFactory $context
      */
     public function __construct(
         ResultFactory $resultFactory,
         AreaList $areaList,
         ScopeInterface $configScope,
-        Context $context
+        Context $context,
+        QueryTypeFactory $queryTypeFactory
     ) {
         $this->resultFactory = $resultFactory;
         $this->areaFrontName = $areaList->getFrontName($configScope->getCurrentScope());
         $this->context = $context;
+        $this->queryTypeFactory = $queryTypeFactory;
     }
 
     /**
@@ -134,7 +140,7 @@ class FrontController implements FrontControllerInterface
 
             // GraphQL schema to be passed to query executor:
             $schema = new Schema([
-                'query' => new QueryType()
+                'query' => $this->queryTypeFactory->create()
             ]);
             $result = GraphQL::execute(
                 $schema,
