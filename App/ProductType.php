@@ -38,8 +38,8 @@ class ProductType extends ObjectType
         foreach ($auto['core_attributes'] as $name => $attr) {
             $fields[$name] = [
                 'type' => $attr['type'],
-                'description' => isset($attr['description']) ? $attr['description'] : "Core attribute '$name'.",
-                'resolveField' => function($val, $args, $context, ResolveInfo $info) {
+                'description' => isset($attr['description']) ? $attr['description'] : "Core attribute '$name'. ",
+                'resolve' => function($val, $args, $context, ResolveInfo $info) {
                     $getFn = 'get' . ucfirst($info->fieldName);
                     return $val->$getFn();
                 }
@@ -50,8 +50,10 @@ class ProductType extends ObjectType
             $fields[$name] = [
                 'type' => $attr['type'],
                 'description' => isset($attr['description']) ? $attr['description'] : "Extension attribute '$name'.",
-                'resolveField' => function($val, $args, $context, ResolveInfo $info) {
-                    return $val->getExtensionAttribute($info->fieldname);
+                'resolve' => function($val, $args, $context, ResolveInfo $info) {
+                    //return $val->getExtensionAttribute($info->fieldName);
+                    $getFn = 'get' . ucfirst($info->fieldName);
+                    return $val->$getFn();
                 }
             ];
         }
@@ -60,8 +62,10 @@ class ProductType extends ObjectType
             $fields[$name] = [
                 'type' => $attr['type'],
                 'description' => isset($attr['description']) ? $attr['description'] : "Custom attribute '$name'.",
-                'resolveField' => function($val, $args, $context, ResolveInfo $info) {
-                    return $val->getExtensionAttribute($info->fieldname);
+                'resolve' => function($val, $args, $context, ResolveInfo $info) {
+                    //return $val->getCustomAttribute($info->fieldName);
+                    $getFn = 'get' . ucfirst($info->fieldName);
+                    return $val->$getFn();
                 }
             ];
         }
