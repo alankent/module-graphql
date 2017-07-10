@@ -11,9 +11,12 @@ class QueryType extends ObjectType
     /**
      * Constructor.
      * @param \AlanKent\GraphQL\App\AutoEntitiesTypeFactory $autoFactory
+     * @param \AlanKent\GraphQL\App\EntitiesTypeFactory $entityTypeFactory
      */
-    public function __construct(\AlanKent\GraphQL\App\AutoEntitiesTypeFactory $autoFactory)
-    {
+    public function __construct(
+        \AlanKent\GraphQL\App\AutoEntitiesTypeFactory $autoFactory,
+        \AlanKent\GraphQL\App\EntitiesTypeFactory $entityTypeFactory
+    ) {
         $config = [
             'name' => 'Query',
             'description' => 'Query type for all supported queries.',
@@ -27,18 +30,18 @@ class QueryType extends ObjectType
                 'catalog' => [
                     'type' => new MagentoCatalogType(),
                     'description' => 'Magento Catalog module type',
-                    'resolve' => function() { return 'XYZ'; }
+                    'resolve' => function() { return 'dummy'; }
                 ],
                 */
                 'entities' => [
-                    'type' => new EntitiesType(),
+                    'type' => $entityTypeFactory->create(),
                     'description' => 'All entities exposed for querying.',
-                    'resolve' => function() { return 'XYZ'; }
+                    'resolve' => function() { return 'dummy'; }
                 ],
                 //'auto' => [
                     //'type' => $autoFactory->create(),
                     //'description' => 'Service contract entities.',
-                    //'resolve' => function() { return null; }
+                    //'resolve' => function() { return 'dummy'; }
                 //],
             ],
             'resolveField' => function($val, $args, $context, ResolveInfo $info) {

@@ -151,7 +151,7 @@ class FrontController implements FrontControllerInterface
             );
         } catch (\Exception $error) {
             $httpStatus = 500;
-            $result['errors'] = [FormattedError::create('Unexpected Error')];
+            $result['errors'] = [FormattedError::create('Unexpected Error: ' . $error->getMessage())];
         }
 
         return $result;

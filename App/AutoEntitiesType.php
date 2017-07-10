@@ -16,23 +16,27 @@ class AutoEntitiesType extends ObjectType
 {
     /**
      * Constructor.
-     * @param \Magento\Webapi\Model\ServiceMetadata $serviceMetadata
+     * param \Magento\Webapi\Model\ServiceMetadata $serviceMetadata
+     * @param \AlanKent\GraphQL\App\EntityManager $entityManager
      */
-    public function __construct(\Magento\Webapi\Model\ServiceMetadata $serviceMetadata)
-    {
-        $s = $serviceMetadata->getServicesConfig();
-        //file_put_contents('/tmp/svc.json', print_r($s));
+    public function __construct(
+        \AlanKent\GraphQL\App\EntityManager $entityManager
+    ) {
+        $fields = [];
+        foreach ($entityManager->listEntities() as $entityName) {
+            $entity = $entityManager->getEntity($entityName);
+            $fields[$entityName] = [
+                'type' => $entity->getType(),
+                'description' => $entity->getDescription(),
+            ];
+        }
 
         $config = [
             'name' => 'AutoEntities',
             'description' => 'All repository interfaces exposed via GraphQL.',
-            'fields' => [
-                //'product' => $this->generateRepositorySchema($serviceMetadata->getServiceConfig('catalogProductRepositoryV1'))
-            ],
+            'fields' => $fields,
         ];
+
         parent::__construct($config);
     }
-
-    //private function generateRepositorySchema($service) {
-    //}
 }

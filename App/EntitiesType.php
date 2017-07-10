@@ -12,7 +12,10 @@ use GraphQL\Type\Definition\NonNull;
  */
 class EntitiesType extends ObjectType
 {
-    public function __construct()
+    /**
+     * @param \AlanKent\GraphQL\App\ProductTypeFactory $productTypeFactory
+     */
+    public function __construct(\AlanKent\GraphQL\App\ProductTypeFactory $productTypeFactory) 
     {
         $config = [
             'name' => 'Entities',
@@ -20,7 +23,7 @@ class EntitiesType extends ObjectType
             'fields' => [
 
                 'product' => [
-                    'type' => new ProductType(),
+                    'type' => $productTypeFactory->create(),
                     'description' => 'Retrieve product for the specified SKU or id.',
                     'args' => [
                         // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
@@ -48,7 +51,9 @@ class EntitiesType extends ObjectType
                             throw new \Exception('Specify either "sku" or "id", not both.');
                         }
                         if (isset($args['id'])) {
-                            return $sc->getById($args['id'], false, $storeId);
+                            $val = $sc->getById($args['id'], false, $storeId);
+                            if (!($val instanceof \Magento\Catalog\Api\Data\ProductInterface)) { var_dump($val); throw new \Exception("Sky is falling"); }
+                            return $val;
                         }
                         if (isset($args['sku'])) {
                             return $sc->get($args['sku'], false, $storeId);
