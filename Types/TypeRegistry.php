@@ -37,6 +37,13 @@ class TypeRegistry
         ];
     }
 
+    public function getType(string $objectName): Type {
+        if (!isset($this->types[$objectName])) {
+            throw new \Exception("Unknown type '$objectName'.");
+        }
+        return $this->types[$objectName];
+    }
+
     /**
      * Convert a string such as "String" or "[Customer!]!" to the
      * corresponding GraphQL type. The entity manager returns types

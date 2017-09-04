@@ -2,6 +2,7 @@
 
 namespace AlanKent\GraphQL\Types;
 
+use AlanKent\GraphQL\App\Entity;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
@@ -14,6 +15,9 @@ class QueryType extends ObjectType
     /** @var \AlanKent\GraphQL\Types\TypeRegistry */
     private $typeRegistry;
 
+    /** @var \Magento\Framework\Api\SearchCriteriaInterfaceFactory */
+    private $searchCriteriaFactory;
+
     /**
      * Constructor.
      * @param \AlanKent\GraphQL\Types\AutoEntitiesTypeFactory $autoFactory
@@ -25,10 +29,12 @@ class QueryType extends ObjectType
         \AlanKent\GraphQL\Types\AutoEntitiesTypeFactory $autoFactory,
         \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory,
         \AlanKent\GraphQL\App\EntityManager $entityManager,
-        \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry
+        \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry,
+        \Magento\Framework\Api\SearchCriteriaInterfaceFactory $searchCriteriaFactory
     ) {
         $this->entityManager = $entityManager;
         $this->typeRegistry = $typeRegistry;
+        $this->searchCriteriaFactory = $searchCriteriaFactory;
 
         $config = [
             'name' => 'Query',
@@ -66,11 +72,100 @@ class QueryType extends ObjectType
                         return null; // TODO: CUSTOMER DATA
                     }
                 ],
+                'product' => [
+                    'type' => $this->typeRegistry->makeType('Product'),
+                    'description' => 'Retrieve one product (or null).',
+                    'args' => [
+                        // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
+                        'sku' => [
+                            'type' => Type::string(),
+                            'description' => 'The SKU of the product to search for. (Supply SKU or id.)'
+                        ],
+                        'id' => [
+                            'type' => Type::int(),
+                            'description' => 'The id of the product to search for. (Supply SKU or id.)'
+                        ],
+//                        'storeId' => [
+//                            'type' => Type::int(),
+//                            'description' => 'The store view id, or omitted for the default store view.',
+//                            //'defaultValue' => 0  // Default should be null? Is null same as zero?
+//                        ]
+                    ],
+                    'resolve' => function($val, $args, $context, $info) {
+                        // Lazy load at runtime.
+                        $sc = $context->getServiceContract(\Magento\Catalog\Api\ProductRepositoryInterface::class);
+
+//                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
+                        $storeId = null;
+
+                        if (isset($args['id']) && isset($args['sku'])) {
+                            throw new \Exception('Specify either "sku" or "id", not both.');
+                        }
+                        if (isset($args['id'])) {
+                            $val = $sc->getById($args['id'], false, $storeId);
+                            if ($val == null) {
+                                return null;
+                            }
+                            if (!($val instanceof \Magento\Catalog\Api\Data\ProductInterface)) { var_dump($val); throw new \Exception("Sky is falling"); }
+                            return $this->entityManager->getEntity('Product', $val);
+                        }
+                        if (isset($args['sku'])) {
+                            $val = $sc->get($args['sku'], false, $storeId);
+                            if ($val == null) {
+                                return null;
+                            }
+                            return $this->entityManager->getEntity('Product', $val);
+                        }
+                        throw new \Exception('You must specify either "sku" or "id".');
+                    }
+                ],
                 'products' => [
                     'type' => $this->typeRegistry->makeType('[Product!]!'),
                     'description' => 'Retrieve customer data',
-                    'resolve' => function() {
-                        return null; // TODO: PRODUCT SEARCH DATA
+                    'args' => [
+                        // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
+                        'first' => [
+                            'type' => Type::int(),
+                            'description' => 'Index of first product to return (default is 0).'
+                        ],
+                        'count' => [
+                            'type' => Type::int(),
+                            'description' => 'How many to return (default is all)'
+                        ],
+    //                        'storeId' => [
+    //                            'type' => Type::int(),
+    //                            'description' => 'The store view id, or omitted for the default store view.',
+    //                            //'defaultValue' => 0  // Default should be null? Is null same as zero?
+    //                        ]
+                    ],
+                    'resolve' => function($val, $args, $context, $info) {
+                        // Lazy load at runtime.
+                        /** @var \Magento\Catalog\Api\ProductRepositoryInterface $sc */
+                        $sc = $context->getServiceContract(\Magento\Catalog\Api\ProductRepositoryInterface::class);
+
+    //                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
+
+                        $first = 0;
+                        if (isset($args['first'])) {
+                            $first = $args['first'];
+                        }
+                        $count = 0;
+                        if (isset($args['count'])) {
+                            $first = $args['count'];
+                        }
+                        $searchCriteria = $this->searchCriteriaFactory->create();
+                        $searchCriteria->setPageSize(1);
+                        $searchCriteria->setCurrentPage($first);
+                        // TODO: CANNOT DO OFFSET AND COUNT: $searchCriteria->setPageCount($count);
+                        $items = $sc->getList($searchCriteria)->getItems();
+                        $val = [];
+                        foreach ($items as $item) {
+                            if ($count-- <= 0) {
+                                break;
+                            }
+                            $val[] = $this->entityManager->getEntity('Product', $item);
+                        }
+                        return $val;
                     }
                 ],
             ],

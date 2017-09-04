@@ -207,14 +207,114 @@ class EntityManager
                     ],
                 ],
             ],
-//            'Order' => [
-//            ],
-//            'OrderItem' => [
-//            ],
-//            'PaymentInfo' => [
-//            ],
-//            'Return' => [
-//            ],
+            'Order' => [
+                'description' => 'Order entity.',
+                //                'resolve' => function($name, $schema, $id) {
+                //                    // TODO: Fetch CustomerInterface instance
+                //                    return null;
+                //                },
+                'fields' => [
+                    'id' => [
+                        'type' => 'ID!',
+                        'description' => 'Order id'
+                    ],
+                    'items' => [
+                        'type' => '[OrderItem!]!',
+                        'description' => 'Items in wishlist',
+                        'args' => [
+                            'first' => [
+                                'type' => 'Int!'
+                            ],
+                            'offset' => [
+                                'type' => 'Int!'
+                            ],
+                        ],
+                    ],
+                    'billingAddress' => [
+                        'type' => 'Address!',
+                        'description' => 'Billing address'
+                    ],
+                    'shippingAddress' => [
+                        'type' => 'Address!',
+                        'description' => 'Shipping address'
+                    ],
+                    'shippingMethod' => [
+                        'type' => 'String!',
+                        'description' => 'Shipping method'
+                    ],
+                    'paymentInfo' => [
+                        'type' => '[PaymentInfo!]!',
+                        'description' => 'Payment information'
+                    ],
+                ],
+            ],
+            'OrderItem' => [
+                'description' => 'Order item entity.',
+//                'resolve' => function($name, $schema, $id) {
+//                    // TODO: Fetch CustomerInterface instance
+//                    return null;
+//                },
+                'fields' => [
+                    'id' => [
+                        'type' => 'ID!',
+                        'description' => 'Order item id'
+                    ],
+                    'product' => [
+                        'type' => 'Product!',
+                        'description' => 'Product added to Order'
+                    ],
+                    'qty' => [
+                        'type' => 'Float!',
+                        'description' => 'Quantity of item',
+                    ],
+                    'options' => [
+                        'type' => '[ProductOption!]',
+                        'description' => 'Product options for item in order'
+                    ],
+                ],
+            ],
+            'PaymentInfo' => [
+                'description' => 'Order item entity.',
+//                'resolve' => function($name, $schema, $id) {
+//                    // TODO: Fetch CustomerInterface instance
+//                    return null;
+//                },
+                'fields' => [
+                    'id' => [
+                        'type' => 'ID!',
+                        'description' => 'Payment info id'
+                    ],
+                    'paymentMethodCode' => [
+                        'type' => 'String!',
+                        'description' => 'Payment method'
+                    ],
+                    'amount' => [
+                        'type' => 'Float!',
+                        'description' => 'Payment amount',
+                    ],
+                ],
+            ],
+            'Return' => [
+                'description' => 'Order item entity.',
+//                'resolve' => function($name, $schema, $id) {
+//                    // TODO: Fetch CustomerInterface instance
+//                    return null;
+//                },
+                'fields' => [
+                    'id' => [
+                        'type' => 'ID!',
+                        'description' => 'Return id'
+                    ],
+                    'orderId' => [
+                        'type' => 'String!',
+                        'description' => 'Order that was returned'
+                    ],
+                    'items' => [
+                        'type' => '[OrderItem!]!',
+                        'description' => 'Returned items',
+                    ],
+                ],
+            ],
             'Product' => [
                 'description' => 'Product.',
 //                'resolve' => function($name, $schema, $id) {
@@ -253,8 +353,23 @@ class EntityManager
                     ],
                 ],
             ],
-//            'Comment' => [
-//            ],
+            'Comment' => [
+                'description' => 'Product option.',
+//                'resolve' => function($name, $schema, $id) {
+//                    // TODO: Fetch CustomerInterface instance
+//                    return null;
+//                },
+                'fields' => [
+                    'author' => [
+                        'type' => 'String!',
+                        'description' => 'Author of comment.'
+                    ],
+                    'text' => [
+                        'type' => 'String!',
+                        'description' => 'Comment text.'
+                    ],
+                ],
+            ],
 
 //        [
 //            'id' =>             [ 'type' => 'int',     'description' => '' ],
@@ -285,16 +400,13 @@ class EntityManager
     /**
      * Return a handle to the specified entity name, or null if the entity name is not known.
      */
-    public function getEntity(string $name, string $id): Entity {
+    public function getEntity(string $name, $dataEntity): Entity {
         if (!isset($this->schemas[$name])) {
-            return null;
+            throw new \Exception("Cannot create Entity for unknown type '$name'.");
         }
         $entitySchema = $this->schemas[$name];
-        return $this->entityFactory->create(
-            $name,
-            $entitySchema,
-            $entitySchema['resolve']($name, $entitySchema, $id)
-        );
+//TODO        return $this->entityFactory->create($name, $entitySchema, $dataEntity);
+        return new Entity($name, $entitySchema, $dataEntity);
     }
 
     public function getEntitySchema($name)
