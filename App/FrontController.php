@@ -1,6 +1,7 @@
 <?php
 namespace AlanKent\GraphQL\App;
 
+use AlanKent\GraphQL\Types\MutationType;
 use Magento\Framework\App\FrontControllerInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\ResultInterface;
@@ -10,6 +11,7 @@ use Magento\Framework\Config\ScopeInterface;
 use Magento\Framework\HTTP\PhpEnvironment\Request as HttpRequest;
 use AlanKent\GraphQL\App\Context;
 use AlanKent\GraphQL\Types\QueryTypeFactory;
+use AlanKent\GraphQL\Types\MutationTypeFactory;
 
 use \GraphQL\Schema;
 use \GraphQL\GraphQL;
@@ -35,6 +37,9 @@ class FrontController implements FrontControllerInterface
     /** @var QueryTypeFactory */
     private $queryTypeFactory;
 
+    /** @var MutationTypeFactory */
+    private $mutationTypeFactory;
+
     /**
      * FrontController constructor.
      * @param ResultFactory $resultFactory
@@ -42,18 +47,21 @@ class FrontController implements FrontControllerInterface
      * @param ScopeInterface $configScope
      * @param Context $context
      * @param QueryTypeFactory $context
+     * @param MutationTypeFactory $context
      */
     public function __construct(
         ResultFactory $resultFactory,
         AreaList $areaList,
         ScopeInterface $configScope,
         Context $context,
-        QueryTypeFactory $queryTypeFactory
+        QueryTypeFactory $queryTypeFactory,
+        MutationTypeFactory $mutationTypeFactory
     ) {
         $this->resultFactory = $resultFactory;
         $this->areaFrontName = $areaList->getFrontName($configScope->getCurrentScope());
         $this->context = $context;
         $this->queryTypeFactory = $queryTypeFactory;
+        $this->mutationTypeFactory = $mutationTypeFactory;
     }
 
     /**
@@ -138,7 +146,8 @@ class FrontController implements FrontControllerInterface
 
             // GraphQL schema to be passed to query executor:
             $config = [
-                'query' => $this->queryTypeFactory->create()
+                'query' => $this->queryTypeFactory->create(),
+                'mutation' => $this->mutationTypeFactory->create()
             ];
 //            var_dump($config);
             $schema = new Schema($config);

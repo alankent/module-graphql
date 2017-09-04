@@ -66,14 +66,14 @@ class QueryType extends ObjectType
                     //'resolve' => function() { return 'dummy'; }
                 //],
                 'customerData' => [
-                    'type' => $this->typeRegistry->makeType('Customer'),
+                    'type' => $this->typeRegistry->makeOutputType('Customer'),
                     'description' => 'Retrieve customer data',
                     'resolve' => function() {
                         return null; // TODO: CUSTOMER DATA
                     }
                 ],
                 'product' => [
-                    'type' => $this->typeRegistry->makeType('Product'),
+                    'type' => $this->typeRegistry->makeOutputType('Product'),
                     'description' => 'Retrieve one product (or null).',
                     'args' => [
                         // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
@@ -120,7 +120,7 @@ class QueryType extends ObjectType
                     }
                 ],
                 'products' => [
-                    'type' => $this->typeRegistry->makeType('[Product!]!'),
+                    'type' => $this->typeRegistry->makeOutputType('[Product!]!'),
                     'description' => 'Retrieve customer data',
                     'args' => [
                         // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
