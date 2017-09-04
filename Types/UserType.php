@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Types;
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;

@@ -9,10 +9,8 @@ use Magento\Framework\App\AreaList;
 use Magento\Framework\Config\ScopeInterface;
 use Magento\Framework\HTTP\PhpEnvironment\Request as HttpRequest;
 use AlanKent\GraphQL\App\Context;
+use AlanKent\GraphQL\Types\QueryTypeFactory;
 
-//use \GraphQL\Examples\Blog\Types;
-//use \GraphQL\Examples\Blog\AppContext;
-//use \GraphQL\Examples\Blog\Data\DataSource;
 use \GraphQL\Schema;
 use \GraphQL\GraphQL;
 use \GraphQL\Type\Definition\Config;
@@ -139,9 +137,11 @@ class FrontController implements FrontControllerInterface
             //$appContext->request = $_REQUEST;
 
             // GraphQL schema to be passed to query executor:
-            $schema = new Schema([
+            $config = [
                 'query' => $this->queryTypeFactory->create()
-            ]);
+            ];
+//            var_dump($config);
+            $schema = new Schema($config);
             $result = GraphQL::execute(
                 $schema,
                 $query,

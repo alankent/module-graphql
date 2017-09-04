@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Types;
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -10,7 +10,8 @@ use GraphQL\Type\Definition\NonNull;
 use Magento\Webapi\Model\ServiceMetadata;
 
 /**
- * Object type for querying the avaialble entities (*RepositoryInterface service contracts).
+ * Object type for querying the available entities (*RepositoryInterface service contracts).
+ * This class might go away.
  */
 class AutoEntitiesType extends ObjectType
 {

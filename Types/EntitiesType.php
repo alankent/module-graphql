@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Types;
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -13,9 +13,9 @@ use GraphQL\Type\Definition\NonNull;
 class EntitiesType extends ObjectType
 {
     /**
-     * @param \AlanKent\GraphQL\App\ProductTypeFactory $productTypeFactory
+     * @param \AlanKent\GraphQL\Types\ProductTypeFactory $productTypeFactory
      */
-    public function __construct(\AlanKent\GraphQL\App\ProductTypeFactory $productTypeFactory) 
+    public function __construct(\AlanKent\GraphQL\Types\ProductTypeFactory $productTypeFactory)
     {
         $config = [
             'name' => 'Entities',

@@ -4,47 +4,36 @@ namespace AlanKent\GraphQL\App;
 
 
 /**
- * Used to access the contents and schema of an entity, suchas "Product" or "Customer".
+ * Used to access the contents and schema of an entity, such as "Product" or "Customer".
+ * This is class exists until the new Magento Persistence Layer is implemented, at
+ * which time this class would be replaced by an "Attribute Value Set" returned by
+ * query operations.
  */
 class Entity
 {
-    /**@ var array */
-    private $schema;
-
     /**@ var string */
     private $name;
 
-    /**@ var string */
-    private $description;
+    /**@ var array */
+    private $schema;
+
+    /**@ var Object */
+    private $dataEntity;
 
     /**
      * Constructor.
      * @param string $name
-     * @param string description
-     * TODO: Will need more arguments - for now we hard code the schema.
+     * @param array $schema
+     * @param Object $dataEntity
      */
     public function __construct(
         string $name,
-        string $description
+        array $schema,
+        $dataEntity
     ) {
         $this->name = $name;
-        $this->description = $description;
-        $this->schema = [
-            // TODO: Temporary until we can compute it automatically.
-            'id' =>             [ 'type' => 'int',     'description' => '' ],
-            'sku' =>            [ 'type' => 'string',  'description' => 'Stock Keeping Unit (SKU).' ],
-            'name' =>           [ 'type' => 'string',  'description' => '' ],
-            'attributeSetId' => [ 'type' => 'int',     'description' => '' ],
-            'price' =>          [ 'type' => 'decimal', 'description' => '' ],
-            'status' =>         [ 'type' => 'int',     'description' => '' ],
-            'visibility' =>     [ 'type' => 'int',     'description' => '' ],
-            'typeId' =>         [ 'type' => 'string',  'description' => '' ],
-            'createdAt' =>      [ 'type' => 'string',  'description' => '' ],
-            'updatedAt' =>      [ 'type' => 'string',  'description' => '' ],
-            'weight' =>         [ 'type' => 'decimal', 'description' => '' ],
-            'material' =>       [ 'type' => 'string',  'description' => '' ],
-            'cust_attr' =>      [ 'type' => 'string',  'description' => 'Demo custom attribute I added by hand' ],
-        ];
+        $this->schema = $schema;
+        $this->dataEntity = $dataEntity;
     }
 
     /**
@@ -58,38 +47,44 @@ class Entity
      * Return the entity description.
      */
     public function getDescription(): string {
-        return $this->description;
-    }
-
-    /**
-     * Return the schema (all the attributes) of the entity.
-     */
-    public function getSchema(): array {
-        return $this->schema;
+        return $this->schema['description'];
     }
 
     /**
      * Given an data entity, fetch the specified attribute.
      */
-    public function getAttribute($dataEntity, $code) {
+    public function getAttribute($code) {
+
+        // Look up attribute in schema.
+        if (!isset($this->schema['fields'][$code])) {
+            // TODO: Throw exception?
+            return null;
+        }
+        $fieldSchema = $this->schema['fields'][$code];
+
+        // See if custom function defined.
+        if (isset($fieldSchema['resolve'])) {
+            $func = $fieldSchema['resolve'];
+            return $func($this->dataEntity, $code, $fieldSchema);
+        }
 
         // Try as a direct attribute.
         $getFn = 'get' . ucfirst($code);
-        if (method_exists($dataEntity, $getFn)) {
-            return $dataEntity->$getFn();
+        if (method_exists($this->dataEntity, $getFn)) {
+            return $this->dataEntity->$getFn();
         }
 
         // Try as an extension attribute
-        if (method_exists($dataEntity, 'getExtensionAttributes')) {
-            $ext = $dataEntity->getExtensionAttributes($code);
+        if (method_exists($this->dataEntity, 'getExtensionAttributes')) {
+            $ext = $this->dataEntity->getExtensionAttributes($code);
             if (method_exists($ext, $getFn)) {
                 return $ext->$getFn();
             }
         }
 
         // Try as a custom attribute
-        if ($dataEntity instanceof \Magento\Framework\Api\CustomAttributesDataInterface) {
-            return $dataEntity->getCustomAttribute($code)->getValue();
+        if ($this->dataEntity instanceof \Magento\Framework\Api\CustomAttributesDataInterface) {
+            return $this->dataEntity->getCustomAttribute($code)->getValue();
         }
 
         return null;

@@ -3,6 +3,12 @@
 namespace AlanKent\GraphQL\App;
 
 
+/**
+ * (Not in use - this is some sample code to work out what attributes exist.
+ * Eventually the entity manager should work out all the attributes defined
+ * automatically using code like this. For now, the list of attributes is hard
+ * coded into the EntityManager implementation.
+ */
 class ObjectMetadata
 {
     /**

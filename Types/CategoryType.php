@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Types;
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -8,6 +8,11 @@ use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\ListOfType;
 
+/**
+ * Example class for declaring a type. However, this class may go away as the
+ * EntityManager class returns type information that is dynamically converted
+ * to GQL types from entity definitions.
+ */
 class CategoryType extends ObjectType
 {
     public function __construct()
