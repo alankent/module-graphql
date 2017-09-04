@@ -2,12 +2,14 @@
 
 namespace AlanKent\GraphQL\Types;
 
+use AlanKent\GraphQL\App\Context;
 use AlanKent\GraphQL\App\Entity;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\InputType;
+use Magento\Customer\Api\AccountManagementInterface;
 
 class MutationType extends ObjectType
 {
@@ -16,9 +18,6 @@ class MutationType extends ObjectType
 
     /** @var \AlanKent\GraphQL\Types\TypeRegistry */
     private $typeRegistry;
-
-    /** @var \Magento\Framework\Api\SearchCriteriaInterfaceFactory */
-    private $searchCriteriaFactory;
 
     /**
      * Constructor.
@@ -33,11 +32,6 @@ class MutationType extends ObjectType
     ) {
         $this->entityManager = $entityManager;
         $this->typeRegistry = $typeRegistry;
-
-//var_dump($this->typeRegistry->makeInputType('Order'));
-//        var_dump($this->typeRegistry->makeInputType('Order')->getFields());
-//$it = $this->typeRegistry->makeInputType('Order');
-//var_dump($it instanceof InputType);
 
         $config = [
             'name' => 'Mutation',
@@ -59,14 +53,28 @@ class MutationType extends ObjectType
                             'description' => 'The order to be placed.'
                         ]
                     ],
-                    'resolve' => function() {
+                    'resolve' => function($val, $args, $context, ResolveInfo $info) {
                         return null; // TODO
                     }
                 ],
+                'requestPasswordReset' => [
+                    'type' => StatusType::singleton(),
+                    'description' => 'Request a password reset',
+                    'args' => [
+                        'email' => [
+                            'type' => Type::string(),
+                            'description' => 'Email address of the customer to request the password reset for.'
+                        ]
+                    ],
+                    'resolve' => function($val, $args, $context, ResolveInfo $info) {
+                        /** @var Context $context */
+                        /** @var AccountManagementInterface $ami */
+                        $ami = $context->getServiceContract(AccountManagementInterface::class);
+                        //$ami->TODO - not sure which method to call!
+                        return new StatusValue(false, 'Reset method not implemented yet.');
+                    }
+                ],
             ],
-//            'resolveField' => function($val, $args, $context, ResolveInfo $info) {
-//                return $this->{$info->fieldName}($val, $args, $context, $info);
-//            }
         ];
 
         parent::__construct($config);
