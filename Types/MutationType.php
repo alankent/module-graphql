@@ -3,35 +3,70 @@
 namespace AlanKent\GraphQL\Types;
 
 use AlanKent\GraphQL\App\Context;
-use AlanKent\GraphQL\App\Entity;
-use GraphQL\Type\Definition\InputObjectType;
+use Braintree\Exception;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Definition\InputType;
 use Magento\Customer\Api\AccountManagementInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+use Magento\Customer\Model\AuthenticationInterface;
+use Magento\Customer\Model\EmailNotificationInterface;
+use Magento\Customer\Model\Session;
+use Magento\Framework\Event\ManagerInterface;
 
+/**
+ * Entry point for all mutation methods of GraphQL endpoint.
+ */
 class MutationType extends ObjectType
 {
-    /** @var \AlanKent\GraphQL\App\EntityManager */
-    private $entityManager;
-
-    /** @var \AlanKent\GraphQL\Types\TypeRegistry */
+    /** @var TypeRegistry */
     private $typeRegistry;
 
+    /**@var ManagerInterface */
+    private $eventManager;
+
+    /**@var Session */
+    private $session;
+
+    /** @var CustomerRepositoryInterface */
+    private $customerRepository;
+
+    /** @var AuthenticationInterface */
+    private $authentication;
+
+    /** @var AccountManagementInterface */
+    private $accountManagement;
+
+    /** @var \Magento\Customer\Model\EmailNotificationInterface */
+    private $emailNotification;
+
     /**
-     * Constructor.
-     * @param \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory
-     * @param \AlanKent\GraphQL\App\EntityManager $entityManager
-     * @param TypeRegistry $typeRegistry
+     * MutationType constructor.
+     * @param \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry
+     * @param Session $session
+     * @param ManagerInterface $eventManager
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param AuthenticationInterface $authentication
+     * @param AccountManagementInterface $accountManagement
+     * @param EmailNotificationInterface $emailNotification
      */
     public function __construct(
-        \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory,
-        \AlanKent\GraphQL\App\EntityManager $entityManager,
-        \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry
+        TypeRegistry $typeRegistry,
+        Session $session,
+        ManagerInterface $eventManager,
+        CustomerRepositoryInterface $customerRepository,
+        AuthenticationInterface $authentication,
+        AccountManagementInterface $accountManagement,
+        EmailNotificationInterface $emailNotification
     ) {
-        $this->entityManager = $entityManager;
         $this->typeRegistry = $typeRegistry;
+        $this->session = $session;
+        $this->eventManager = $eventManager;
+        $this->customerRepository = $customerRepository;
+        $this->authentication = $authentication;
+        $this->accountManagement = $accountManagement;
+        $this->emailNotification = $emailNotification;
 
         $config = [
             'name' => 'Mutation',
@@ -74,9 +109,73 @@ class MutationType extends ObjectType
                         return new StatusValue(false, 'Reset method not implemented yet.');
                     }
                 ],
+                'changePassword' => [
+                    'type' => StatusType::singleton(),
+                    'description' => 'Request a password reset',
+                    'args' => [
+                        'oldPassword' => [
+                            'type' => Type::nonNull(Type::string()),
+                            'description' => "Current user's old password.",
+                        ],
+                        'newPassword' => [
+                            'type' => Type::nonNull(Type::string()),
+                            'description' => "New password to change password to.",
+                        ],
+                    ],
+                    'resolve' => function($val, $args, $context, ResolveInfo $info) {
+                        return $this->changePassword($args['oldPassword'], $args['newPassword']);
+                    },
+                ],
             ],
         ];
 
         parent::__construct($config);
+    }
+
+    /**
+     * Implementation of changePassword GraphQL request.
+     */
+    private function changePassword(string $oldPassword, string $newPassword) {
+
+        // TODO: Much of this was copied from EditPost.php. Feels redundant to copy all this code here.
+
+        try {
+            
+            if ($this->session->getCustomerId() == null) {
+                return new StatusValue(false, 'You are not currently logged in.');
+            }
+
+            /** @var CustomerInterface $currentCustomerDataObject */
+            $currentCustomerDataObject = $this->customerRepository->getById($this->session->getCustomerId());
+
+            // Throws exception if old password is not correct
+            // TODO: Do we need this? changePassword() service contract takes old password as well...
+            $this->authentication->authenticate($currentCustomerDataObject->getId(), $oldPassword);
+            if ($newPassword === $oldPassword) {
+                return new StatusValue(true, 'Password is unchanged.');
+            }
+
+            // Call service contract to change password.
+            $this->accountManagement->changePassword($currentCustomerDataObject->getEmail(), $oldPassword, $newPassword);
+
+            // Send email that password was changed.
+            $this->emailNotification->credentialsChanged(
+                $currentCustomerDataObject,
+                $currentCustomerDataObject->getEmail(),
+                true
+            );
+
+            // Notify watchers that account was changed.
+            // TODO: This was only a password change - is this event needed in this case?
+            $this->eventManager->dispatch(
+                'customer_account_edited',
+                ['email' => $currentCustomerDataObject->getEmail()]
+            );
+
+        } catch (\Exception $exception) {
+            return new StatusValue(false, $exception->getMessage());
+        }
+
+        return new StatusValue(true, 'Password changed successfully.');
     }
 }
