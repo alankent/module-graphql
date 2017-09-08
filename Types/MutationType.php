@@ -23,50 +23,14 @@ class MutationType extends ObjectType
     /** @var TypeRegistry */
     private $typeRegistry;
 
-    /**@var ManagerInterface */
-    private $eventManager;
-
-    /**@var Session */
-    private $session;
-
-    /** @var CustomerRepositoryInterface */
-    private $customerRepository;
-
-    /** @var AuthenticationInterface */
-    private $authentication;
-
-    /** @var AccountManagementInterface */
-    private $accountManagement;
-
-    /** @var \Magento\Customer\Model\EmailNotificationInterface */
-    private $emailNotification;
-
     /**
      * MutationType constructor.
      * @param \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry
-     * @param Session $session
-     * @param ManagerInterface $eventManager
-     * @param CustomerRepositoryInterface $customerRepository
-     * @param AuthenticationInterface $authentication
-     * @param AccountManagementInterface $accountManagement
-     * @param EmailNotificationInterface $emailNotification
      */
     public function __construct(
-        TypeRegistry $typeRegistry,
-        Session $session,
-        ManagerInterface $eventManager,
-        CustomerRepositoryInterface $customerRepository,
-        AuthenticationInterface $authentication,
-        AccountManagementInterface $accountManagement,
-        EmailNotificationInterface $emailNotification
+        TypeRegistry $typeRegistry
     ) {
         $this->typeRegistry = $typeRegistry;
-        $this->session = $session;
-        $this->eventManager = $eventManager;
-        $this->customerRepository = $customerRepository;
-        $this->authentication = $authentication;
-        $this->accountManagement = $accountManagement;
-        $this->emailNotification = $emailNotification;
 
         $config = [
             'name' => 'Mutation',
@@ -74,7 +38,7 @@ class MutationType extends ObjectType
             'fields' => [
                 'hello' => [
                     'type' => Type::string(),
-                    'description' => 'Returns a simple greeting (Hellow World!) message.',
+                    'description' => 'Returns a simple greeting (Hello World!) message.',
                     'resolve' => function() {
                         return 'Your graphql-php endpoint is ready now! Use GraphiQL to browse API';
                     }
@@ -123,7 +87,7 @@ class MutationType extends ObjectType
                         ],
                     ],
                     'resolve' => function($val, $args, $context, ResolveInfo $info) {
-                        return $this->changePassword($args['oldPassword'], $args['newPassword']);
+                        return $this->changePassword($context, $args['oldPassword'], $args['newPassword']);
                     },
                 ],
             ],
@@ -135,31 +99,47 @@ class MutationType extends ObjectType
     /**
      * Implementation of changePassword GraphQL request.
      */
-    private function changePassword(string $oldPassword, string $newPassword) {
+    private function changePassword(Context $context, string $oldPassword, string $newPassword) {
 
         // TODO: Much of this was copied from EditPost.php. Feels redundant to copy all this code here.
 
+        // By not using the class constructor, this lazily loads these interfaces when this specific method is called.
+        // Adding them to the constructor will load up everything even when not needed.
+        // (Another approach is to put this method in its own class so we can use a factory to create the class on demand.)
+        /**@var ManagerInterface */
+        $eventManager = $context->getServiceContract(ManagerInterface::class);
+        /**@var Session */
+        $session = $context->getServiceContract(Session::class);
+        /** @var CustomerRepositoryInterface */
+        $customerRepository = $context->getServiceContract(CustomerInterface::class);
+        /** @var AuthenticationInterface */
+        $authentication = $context->getServiceContract(AuthenticationInterface::class);
+        /** @var AccountManagementInterface */
+        $accountManagement = $context->getServiceContract(AccountManagementInterface::class);
+        /** @var \Magento\Customer\Model\EmailNotificationInterface */
+        $emailNotification = $context->getServiceContract(EmailNotificationInterface::class);
+
         try {
 
-            if ($this->session->getCustomerId() == null) {
+            if ($session->getCustomerId() == null) {
                 return new StatusValue(false, __('You are not currently logged in.'));
             }
 
             /** @var CustomerInterface $currentCustomerDataObject */
-            $currentCustomerDataObject = $this->customerRepository->getById($this->session->getCustomerId());
+            $currentCustomerDataObject = $customerRepository->getById($session->getCustomerId());
 
             // Throws exception if old password is not correct
             // TODO: Do we need this? changePassword() service contract takes old password as well...
-            $this->authentication->authenticate($currentCustomerDataObject->getId(), $oldPassword);
+            $authentication->authenticate($currentCustomerDataObject->getId(), $oldPassword);
             if ($newPassword === $oldPassword) {
                 return new StatusValue(true, __('Password is unchanged.'));
             }
 
             // Call service contract to change password.
-            $this->accountManagement->changePassword($currentCustomerDataObject->getEmail(), $oldPassword, $newPassword);
+            $accountManagement->changePassword($currentCustomerDataObject->getEmail(), $oldPassword, $newPassword);
 
             // Send email that password was changed.
-            $this->emailNotification->credentialsChanged(
+            $emailNotification->credentialsChanged(
                 $currentCustomerDataObject,
                 $currentCustomerDataObject->getEmail(),
                 true
@@ -167,7 +147,7 @@ class MutationType extends ObjectType
 
             // Notify watchers that account was changed.
             // TODO: This was only a password change - is this event needed in this case?
-            $this->eventManager->dispatch(
+            $eventManager->dispatch(
                 'customer_account_edited',
                 ['email' => $currentCustomerDataObject->getEmail()]
             );
