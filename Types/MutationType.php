@@ -140,9 +140,9 @@ class MutationType extends ObjectType
         // TODO: Much of this was copied from EditPost.php. Feels redundant to copy all this code here.
 
         try {
-            
+
             if ($this->session->getCustomerId() == null) {
-                return new StatusValue(false, 'You are not currently logged in.');
+                return new StatusValue(false, __('You are not currently logged in.'));
             }
 
             /** @var CustomerInterface $currentCustomerDataObject */
@@ -152,7 +152,7 @@ class MutationType extends ObjectType
             // TODO: Do we need this? changePassword() service contract takes old password as well...
             $this->authentication->authenticate($currentCustomerDataObject->getId(), $oldPassword);
             if ($newPassword === $oldPassword) {
-                return new StatusValue(true, 'Password is unchanged.');
+                return new StatusValue(true, __('Password is unchanged.'));
             }
 
             // Call service contract to change password.
@@ -176,6 +176,6 @@ class MutationType extends ObjectType
             return new StatusValue(false, $exception->getMessage());
         }
 
-        return new StatusValue(true, 'Password changed successfully.');
+        return new StatusValue(true, __('Password changed successfully.'));
     }
 }
