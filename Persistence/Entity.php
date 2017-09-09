@@ -2,6 +2,7 @@
 
 namespace AlanKent\GraphQL\Persistence;
 
+use \AlanKent\GraphQL\Persistence\EntityDefinition;
 
 /**
  * Used to access the contents and schema of an entity, such as "Product" or "Customer".
@@ -23,12 +24,12 @@ class Entity
     /**
      * Constructor.
      * @param string $name
-     * @param array $schema
+     * @param EntityDefinition $schema
      * @param Object $dataEntity
      */
     public function __construct(
         string $name,
-        array $schema,
+        EntityDefintion $schema,
         $dataEntity
     ) {
         $this->name = $name;

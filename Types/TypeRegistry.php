@@ -2,6 +2,7 @@
 
 namespace AlanKent\GraphQL\Types;
 
+use AlanKent\GraphQL\Persistence\EntityDefinition;
 use AlanKent\GraphQL\Persistence\EntityManager;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
@@ -187,26 +188,25 @@ class TypeRegistry
      * are created. These are close, but not identical.
      */
     private function compileType(string $entityName) {
-        $schema = $this->entityManager->getEntitySchema($entityName);
+        /** @var EntityDefinition $schema */
+        $schema = $this->entityManager->getEntityDefinition($entityName);
         if ($schema == null) {
             throw new \Exception("Unknown type '$entityName'.");
         }
 
         $this->outputTypes[$entityName] = new ObjectType([
             'name' => $entityName,
-            'description' => $schema['description'],
-//            'resolve' => $schema['resolve'],
+            'description' => $schema->getDescription(),
             'fields' => function() use($schema) {
+                // Use a function here so all types can be declared before field types are resolved.
                 $fields = [];
-                foreach ($schema['fields'] as $fn => $fv) {
-                    $fields[$fn] = [
-                        'type' => $this->makeOutputType(($fv['type'])),
-                        'description' => $fv['description'],
-                        'resolve' => isset($fv['resolve'])
-                            ? $resolveFunc = $fv['resolve']
-                            : function($val, $args, $context, $info) use ($fn) {
+                foreach ($schema->getAttributes() as $attribute) {
+                    $fields[$attribute->getName()] = [
+                        'type' => $this->makeOutputType($attribute->getTypeName()),
+                        'description' => $attribute->getDescription(),
+                        'resolve' => function($val, $args, $context, $info) use ($attribute) {
                                 /** @var \AlanKent\GraphQL\Persistence\Entity $val */
-                                return $val->getAttribute($fn);
+                                return $val->getAttribute($attribute->getName());
                             },
                     ];
                 }
@@ -218,18 +218,19 @@ class TypeRegistry
         // as they are "computed" attributes (not store in database).
         $this->inputTypes[$entityName] = new InputObjectType([
             'name' => $entityName . 'Input',
-            'description' => $schema['description'],
-            'fields' => function() use($schema, $entityName) {
+            'description' => $schema->getDescription(),
+            'fields' => function() use($schema) {
                 $fields = [];
-                foreach ($schema['fields'] as $fn => $fv) {
-                    if (!isset($fv['resolve']) && $fv['type'] !== 'ID' && $fv['type'] !== 'ID!') {
+                foreach ($schema->getAttributes() as $fn => $fv) {
+                    if (!$fv->isScalar() || $fv->getTypeName() !== 'ID') {
                         $fields[$fn] = [
-                            'type' => $this->makeInputType(($fv['type'])),
-                            'description' => $fv['description'],
+                            'type' => $this->makeInputType($fv->getTypeName()),
+                            'description' => $fv->getDescription(),
                         ];
                     }
                 }
                 if (count($fields) == 0) {
+                    $entityName = $schema->getName();
                     throw new \Exception("Type '$entityName' has no input fields.'");
                 }
                 return $fields;

@@ -2,6 +2,8 @@
 
 namespace AlanKent\GraphQL\Persistence;
 
+use AlanKent\GraphQL\PersistenceAttributeDefinition;
+use AlanKent\GraphQL\PersistenceEntityDefinition;
 use Magento\Customer\Api\Data\CustomerInterface;
 
 
@@ -28,348 +30,87 @@ class EntityManager
         $this->entityFactory = $entityFactory;
 
         // TODO: Hard coded for now.
-        $this->schemas = [
-            'Customer' => [
-                'description' => 'Customer entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Customer id'
-                    ],
-                    'name' => [
-                        'type' => 'String!',
-                        'description' => 'Customer id'
-                    ],
-                    'email' => [
-                        'type' => 'String!',
-                        'description' => 'Customer email address'
-                    ],
-                    'addresses' => [
-                        'type' => '[Address!]!',
-                        'description' => 'Customer addresses'
-                    ],
-                    'quotes' => [
-                        'type' => '[Quote!]!',
-                        'description' => 'Quotes for this customer'
-                    ],
-                    'wishlists' => [
-                        'type' => '[Wishlist!]!',
-                        'description' => 'Wishlists for this customer'
-                    ],
-                ],
-            ],
-            'Address' => [
-                'description' => 'Address entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Address id'
-                    ],
-                    'country' => [
-                        'type' => 'String!',
-                        'description' => 'Country'
-                    ],
-                    'city' => [
-                        'type' => 'String!',
-                        'description' => 'City'
-                    ],
-                    'street' => [
-                        'type' => 'String!',
-                        'description' => 'Street'
-                    ],
-                    'zip' => [
-                        'type' => 'String!',
-                        'description' => 'Street'
-                    ],
-                ],
-            ],
-            'Quote' => [
-                'description' => 'Quote entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Quote id'
-                    ],
-                    'name' => [
-                        'type' => 'String!',
-                        'description' => 'Quote name'
-                    ],
-                    'items' => [
-                        'type' => '[QuoteItem!]!',
-                        'description' => 'Items in quote',
-                        'args' => [
-                            'first' => [
-                                'type' => 'Int!'
-                            ],
-                            'offset' => [
-                                'type' => 'Int!'
-                            ],
-                        ],
-                    ],
-                    'isDefault' => [
-                        'type' => 'Boolean!',
-                        'description' => 'True if the default'
-                    ],
-                ],
-            ],
-            'QuoteItem' => [
-                'description' => 'Quote item entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Quote id'
-                    ],
-                    'product' => [
-                        'type' => 'Product!',
-                        'description' => 'Product added to quote'
-                    ],
-                    'qty' => [
-                        'type' => 'Float!',
-                        'description' => 'Quantity of item',
-                    ],
-                    'options' => [
-                        'type' => '[ProductOption!]',
-                        'description' => 'Product options for item in quote'
-                    ],
-                ],
-            ],
-            'Wishlist' => [
-                'description' => 'Wishlist entity.',
-    //                'resolve' => function($name, $schema, $id) {
-    //                    // TODO: Fetch CustomerInterface instance
-    //                    return null;
-    //                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Wishlist id'
-                    ],
-                    'name' => [
-                        'type' => 'String!',
-                        'description' => 'Wishlist name'
-                    ],
-                    'items' => [
-                        'type' => '[WishlistItem!]!',
-                        'description' => 'Items in wishlist',
-                        'args' => [
-                            'first' => [
-                                'type' => 'Int!'
-                            ],
-                            'offset' => [
-                                'type' => 'Int!'
-                            ],
-                        ],
-                    ],
-                    'isDefault' => [
-                        'type' => 'Boolean!',
-                        'description' => 'True if the default'
-                    ],
-                ],
-            ],
-            'WishlistItem' => [
-                'description' => 'Wishlist item entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Wishlist item id'
-                    ],
-                    'product' => [
-                        'type' => 'Product!',
-                        'description' => 'Product added to wishlist'
-                    ],
-                    'qty' => [
-                        'type' => 'Float!',
-                        'description' => 'Quantity of item',
-                    ],
-                    'options' => [
-                        'type' => '[ProductOption!]',
-                        'description' => 'Product options for item in wishlist'
-                    ],
-                ],
-            ],
-            'Order' => [
-                'description' => 'Order entity.',
-                //                'resolve' => function($name, $schema, $id) {
-                //                    // TODO: Fetch CustomerInterface instance
-                //                    return null;
-                //                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Order id'
-                    ],
-                    'items' => [
-                        'type' => '[OrderItem!]!',
-                        'description' => 'Items in wishlist',
-                        'args' => [
-                            'first' => [
-                                'type' => 'Int!'
-                            ],
-                            'offset' => [
-                                'type' => 'Int!'
-                            ],
-                        ],
-                    ],
-                    'billingAddress' => [
-                        'type' => 'Address!',
-                        'description' => 'Billing address'
-                    ],
-                    'shippingAddress' => [
-                        'type' => 'Address!',
-                        'description' => 'Shipping address'
-                    ],
-                    'shippingMethod' => [
-                        'type' => 'String!',
-                        'description' => 'Shipping method'
-                    ],
-                    'paymentInfo' => [
-                        'type' => '[PaymentInfo!]!',
-                        'description' => 'Payment information'
-                    ],
-                ],
-            ],
-            'OrderItem' => [
-                'description' => 'Order item entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Order item id'
-                    ],
-                    'product' => [
-                        'type' => 'Product!',
-                        'description' => 'Product added to Order'
-                    ],
-                    'qty' => [
-                        'type' => 'Float!',
-                        'description' => 'Quantity of item',
-                    ],
-                    'options' => [
-                        'type' => '[ProductOption!]',
-                        'description' => 'Product options for item in order'
-                    ],
-                ],
-            ],
-            'PaymentInfo' => [
-                'description' => 'Order item entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Payment info id'
-                    ],
-                    'paymentMethodCode' => [
-                        'type' => 'String!',
-                        'description' => 'Payment method'
-                    ],
-                    'amount' => [
-                        'type' => 'Float!',
-                        'description' => 'Payment amount',
-                    ],
-                ],
-            ],
-            'Return' => [
-                'description' => 'Order item entity.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Return id'
-                    ],
-                    'orderId' => [
-                        'type' => 'String!',
-                        'description' => 'Order that was returned'
-                    ],
-                    'items' => [
-                        'type' => '[OrderItem!]!',
-                        'description' => 'Returned items',
-                    ],
-                ],
-            ],
-            'Product' => [
-                'description' => 'Product.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'id' => [
-                        'type' => 'ID!',
-                        'description' => 'Product id'
-                    ],
-                    'sku' => [
-                        'type' => 'String!',
-                        'description' => 'SKU'
-                    ],
-                    'description' => [
-                        'type' => 'String!',
-                        'description' => 'Product description.',
-                    ],
-                ],
-            ],
-            'ProductOption' => [
-                'description' => 'Product option.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'attribute' => [
-                        'type' => 'String!',
-                        'description' => 'Product attribute.'
-                    ],
-                    'value' => [
-                        'type' => 'String!',
-                        'description' => 'Value selected when product was ordered'
-                    ],
-                ],
-            ],
-            'Comment' => [
-                'description' => 'Product option.',
-//                'resolve' => function($name, $schema, $id) {
-//                    // TODO: Fetch CustomerInterface instance
-//                    return null;
-//                },
-                'fields' => [
-                    'author' => [
-                        'type' => 'String!',
-                        'description' => 'Author of comment.'
-                    ],
-                    'text' => [
-                        'type' => 'String!',
-                        'description' => 'Comment text.'
-                    ],
-                ],
-            ],
+        $this->schemas = [];
+        foreach ([
+            EntityDefinition::make('Customer', 'Customer entity.', [
+                AttributeDefinition::makeScalar('id', 'Customer id', 'ID', false),
+                AttributeDefinition::makeScalar('name', 'Customer name', 'String', false),
+                AttributeDefinition::makeScalar('email', 'Customer email address', 'String', false),
+                AttributeDefinition::makeEntity('addresses', 'Customer addresses', 'Address', true, false),
+                AttributeDefinition::makeEntity('quotes', 'Quotes for this customer', 'Quote', true, false),
+                AttributeDefinition::makeEntity('wishlists', 'Wishlists for this customer', 'Wishlist', true, false),
+            ]),
+            EntityDefinition::make('Address', 'Address entity.', [
+                AttributeDefinition::makeScalar('id', 'Address id', 'ID', false),
+                AttributeDefinition::makeScalar('country', 'Country', 'String', false),
+                AttributeDefinition::makeScalar('city', 'City', 'String', false),
+                AttributeDefinition::makeScalar('street', 'Street', 'String', false),
+                AttributeDefinition::makeScalar('zip', 'Street', 'String', false),
+            ]),
+            EntityDefinition::make('Quote', 'Quote entity.', [
+                AttributeDefinition::makeScalar('id', 'Quote id', 'ID', false),
+                AttributeDefinition::makeScalar('name', 'Quote name', 'String', false),
+                AttributeDefinition::makeEntity('items', 'Items in quote', 'QuoteItem', true, false),
+                AttributeDefinition::makeScalar('isDefault', 'True if the default', 'Boolean', false),
+            ]),
+            EntityDefinition::make('QuoteItem', 'Quote item entity.', [
+                AttributeDefinition::makeScalar('id', 'Quote id', 'ID', false),
+                AttributeDefinition::makeEntity('product', 'Product added to quote', 'Product', false, false),
+                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
+                AttributeDefinition::makeEntity('options', 'Product options for item in quote', 'ProductOption', true, false),
+            ]),
+            EntityDefinition::make('Wishlist', 'Wishlist entity.', [
+                AttributeDefinition::makeScalar('id', 'Wishlist id', 'ID', false),
+                AttributeDefinition::makeScalar('name', 'Wishlist name', 'String', false),
+                AttributeDefinition::makeEntity('items', 'Items in wishlist', 'WishlistItem', true, false),
+                AttributeDefinition::makeScalar('isDefault', 'True if the default', 'Boolean', false),
+            ]),
+            EntityDefinition::make('WishlistItem', 'Wishlist item entity.', [
+                AttributeDefinition::makeScalar('id', 'Wishlist item id', 'ID', false),
+                AttributeDefinition::makeEntity('product', 'Product added to wishlist', 'Product', false, true),
+                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
+                AttributeDefinition::makeEntity('options', 'Product options for item in wishlist', 'ProductOption', true, false),
+            ]),
+            EntityDefinition::make('Order', 'Order entity.', [
+                AttributeDefinition::makeScalar('id', 'Order id', 'ID', false),
+                AttributeDefinition::makeEntity('items', 'Items in wishlist', 'OrderItem', true, false),
+                AttributeDefinition::makeEntity('billingAddress', 'Billing address', 'Address', false, true),
+                AttributeDefinition::makeEntity('shippingAddress', 'Shipping address', 'Address', false, true),
+                AttributeDefinition::makeScalar('shippingMethod', 'Shipping method', 'String', false),
+                AttributeDefinition::makeEntity('paymentInfo', 'Payment information', 'PaymentInfo', true, false),
+            ]),
+            EntityDefinition::make('OrderItem', 'Order item entity.', [
+                AttributeDefinition::makeScalar('id', 'Order item id', 'ID', false),
+                AttributeDefinition::makeEntity('product', 'Product added to Order', 'Product', false, true),
+                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
+                AttributeDefinition::makeEntity('options', 'Product options for item in order', 'ProductOption', true, false),
+            ]),
+            EntityDefinition::make('PaymentInfo', 'Order item entity.', [
+                AttributeDefinition::makeScalar('id', 'Payment info id', 'ID', false),
+                AttributeDefinition::makeScalar('paymentMethodCode', 'Payment method', 'String', false),
+                AttributeDefinition::makeScalar('amount', 'Payment amount', 'Float', false),
+            ]),
+            EntityDefinition::make('Return', 'Order item entity.', [
+                AttributeDefinition::makeScalar('id', 'Return id', 'ID', false),
+                AttributeDefinition::makeScalar('orderId', 'Order that was returned', 'String', false),
+                AttributeDefinition::makeEntity('items', 'Returned items', 'OrderItem', true, false),
+            ]),
+            EntityDefinition::make('Product', 'Product.', [
+                AttributeDefinition::makeScalar('id', 'Product id', 'ID', false),
+                AttributeDefinition::makeScalar('sku', 'SKU', 'String', false),
+                AttributeDefinition::makeScalar('description', 'Product description.', 'String', false),
+            ]),
+            EntityDefinition::make('ProductOption', 'Product option.', [
+                AttributeDefinition::makeScalar('attribute', 'Product attribute.', 'String', false),
+                AttributeDefinition::makeScalar('value', 'Value selected when product was ordered', 'String', false),
+            ]),
+            EntityDefinition::make('Comment', 'Product option.', [
+                AttributeDefinition::makeScalar('author', 'Author of comment.', 'String', false),
+                AttributeDefinition::makeScalar('text', 'Comment text.', 'String', false),
+            ]),
+        ] as $entityDef) {
+            $this->schemas[$entityDef->getName()] = $entityDef;
+        }
 
 //        [
 //            'id' =>             [ 'type' => 'int',     'description' => '' ],
@@ -387,7 +128,7 @@ class EntityManager
 //            'cust_attr' =>      [ 'type' => 'string',  'description' => 'Demo custom attribute I added by hand' ],
 //        ];
 
-        ];
+//        ];
     }
 
     /**
@@ -404,17 +145,13 @@ class EntityManager
         if (!isset($this->schemas[$name])) {
             throw new \Exception("Cannot create Entity for unknown type '$name'.");
         }
-        $entitySchema = $this->schemas[$name];
+        $entityDefinition = $this->schemas[$name];
 //TODO        return $this->entityFactory->create($name, $entitySchema, $dataEntity);
-        return new Entity($name, $entitySchema, $dataEntity);
+        return new Entity($name, $entityDefinition, $dataEntity);
     }
 
-    public function getEntitySchema($name)
+    public function getEntityDefinition($name): EntityDefinition
     {
-        if (!isset($this->schemas[$name])) {
-            return null;
-        }
-        $this->schemas[$name]['name'] = $name;
-        return $this->schemas[$name];
+        return isset($this->schemas[$name]) ? $this->schemas[$name] : null;
     }
 }
