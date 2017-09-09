@@ -2,7 +2,14 @@
 
 namespace AlanKent\GraphQL\Types;
 
+use AlanKent\GraphQL\App\Context;
 use AlanKent\GraphQL\Persistence\Entity;
+use AlanKent\GraphQL\Persistence\EntityRequest;
+use GraphQL\Language\AST\FieldNode;
+use GraphQL\Language\AST\FragmentDefinitionNode;
+use GraphQL\Language\AST\FragmentSpreadNode;
+use GraphQL\Language\AST\InlineFragmentNode;
+use GraphQL\Language\AST\SelectionSetNode;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
@@ -68,7 +75,12 @@ class QueryType extends ObjectType
                 'customerData' => [
                     'type' => $this->typeRegistry->makeOutputType('Customer'),
                     'description' => 'Retrieve customer data',
-                    'resolve' => function() {
+                    'resolve' => function($val, $args, $context, $info) {
+
+                        // Parse request to work out requested attributes.
+                        $req = $this->parseRequest($info);
+                        throw new \Exception((string)$req); // TODO: Debugging.
+
                         return null; // TODO: CUSTOMER DATA
                     }
                 ],
@@ -92,7 +104,13 @@ class QueryType extends ObjectType
 //                        ]
                     ],
                     'resolve' => function($val, $args, $context, $info) {
+
+                        // Parse request to work out requested attributes.
+                        $req = $this->parseRequest($info);
+
                         // Lazy load at runtime.
+                        /** @var Context $context */
+                        /** @var  $sc \Magento\Catalog\Api\ProductRepositoryInterface */
                         $sc = $context->getServiceContract(\Magento\Catalog\Api\ProductRepositoryInterface::class);
 
 //                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
@@ -107,14 +125,14 @@ class QueryType extends ObjectType
                                 return null;
                             }
                             if (!($val instanceof \Magento\Catalog\Api\Data\ProductInterface)) { var_dump($val); throw new \Exception("Sky is falling"); }
-                            return $this->entityManager->getEntity('Product', $val);
+                            return $this->entityManager->getEntity($req, $val);
                         }
                         if (isset($args['sku'])) {
                             $val = $sc->get($args['sku'], false, $storeId);
                             if ($val == null) {
                                 return null;
                             }
-                            return $this->entityManager->getEntity('Product', $val);
+                            return $this->entityManager->getEntity($req, $val);
                         }
                         throw new \Exception('You must specify either "sku" or "id".');
                     }
@@ -139,7 +157,11 @@ class QueryType extends ObjectType
     //                        ]
                     ],
                     'resolve' => function($val, $args, $context, $info) {
+
+                        $req = $this->parseRequest($info, 'Product');
+
                         // Lazy load at runtime.
+                        /** @var Context $context */
                         /** @var \Magento\Catalog\Api\ProductRepositoryInterface $sc */
                         $sc = $context->getServiceContract(\Magento\Catalog\Api\ProductRepositoryInterface::class);
 
@@ -163,7 +185,7 @@ class QueryType extends ObjectType
                             if ($count-- <= 0) {
                                 break;
                             }
-                            $val[] = $this->entityManager->getEntity('Product', $item);
+                            $val[] = $this->entityManager->getEntity($req, $item);
                         }
                         return $val;
                     }
@@ -184,6 +206,74 @@ class QueryType extends ObjectType
 //        }
         parent::__construct($config);
     }
+
+    private function parseRequest(ResolveInfo $info): EntityRequest
+    {
+        // TODO: Path is an array, should navigate from root down full path, not just take last name in path.
+        $startingFieldName = $info->path[count($info->path) - 1];
+        $entityName = (string)$info->returnType;
+
+        // We need to find the selection node for the current query field.
+        foreach ($info->fieldNodes as $fieldNode) {
+            $fieldName = $fieldNode->name->value;
+            if ($fieldName === $startingFieldName) {
+
+                // We found the current field. Now walk the tree of field requests,
+                // building up the EntityRequest object.
+                $entity = $this->entityManager->getEntityDefinition($entityName);
+                $entityReq = new EntityRequest($entity);
+                $this->walk($info, $entityReq, $fieldNode->selectionSet);
+                return $entityReq;
+
+            }
+        }
+
+        throw new \Exception("Query field '$startingFieldName' not found!");
+    }
+
+    private function walk(ResolveInfo $info, EntityRequest $entityRequest, SelectionSetNode $selectionSet)
+    {
+        $entityDefinition = $entityRequest->getEntityDefinition();
+        foreach ($selectionSet->selections as $selectionNode) {
+
+            // This if/elseif/elseif was copied from ResolveInfo code that
+            // similarly walks the tree.
+            if ($selectionNode instanceof FieldNode) {
+                $attributeDefinition = $entityDefinition->getAttribute($selectionNode->name->value);
+
+                $start = null;
+                $limit = null;
+                foreach ($selectionNode->arguments as $argument) {
+                    if ($argument->name->value === 'start') {
+                        $start = $argument->value->value;
+                    }
+                    if ($argument->name->value === 'limit') {
+                        $limit = $argument->value->value;
+                    }
+                }
+
+                $nestedEntityReq = null;
+                if (!$attributeDefinition->isScalar()) {
+                    $attributeEntityDefinition = $this->entityManager->getEntityDefinition($attributeDefinition->getTypeName());
+                    $nestedEntityReq = new EntityRequest($attributeEntityDefinition);
+                    $this->walk($info, $nestedEntityReq, $selectionNode->selectionSet);
+                }
+                $entityRequest->addAttribute($attributeDefinition, $nestedEntityReq, $start, $limit);
+            } else if ($selectionNode instanceof FragmentSpreadNode) {
+                // TODO: untested
+                $spreadName = $selectionNode->name->value;
+                if (isset($info->fragments[$spreadName])) {
+                    /** @var FragmentDefinitionNode $fragment */
+                    $fragment = $info->fragments[$spreadName];
+                    $this->walk($info, $entityRequest, $fragment->selectionSet);
+                }
+            } else if ($selectionNode instanceof InlineFragmentNode) {
+                // TODO: Untested
+                $this->walk($info, $entityRequest, $selectionNode->selectionSet);
+            }
+        }
+    }
+
 //    public function hello()
 //    {
 //        return 'Your graphql-php endpoint is ready now! Use GraphiQL to browse API';

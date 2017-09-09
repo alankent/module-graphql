@@ -140,16 +140,19 @@ class EntityManager
     /**
      * Return a handle to the specified entity name, or null if the entity name is not known.
      */
-    public function getEntity(string $name, $dataEntity): Entity {
-        if (!isset($this->schemas[$name])) {
-            throw new \Exception("Cannot create Entity for unknown type '$name'.");
-        }
-        $entityDefinition = $this->schemas[$name];
+    public function getEntity(EntityRequest $request, $dataEntity): Entity
+    {
+        $entityDef = $request->getEntityDefinition();
 //TODO        return $this->entityFactory->create($name, $entitySchema, $dataEntity);
-        return new Entity($name, $entityDefinition, $dataEntity);
+        return new Entity($entityDef, $dataEntity);
     }
 
-    public function getEntityDefinition($name): EntityDefinition
+    /**
+     * Return the entity definition for the specified entity name.
+     * @param $name The entity name being looked for.
+     * @return EntityDefinition|null The entity definition, or null if not found.
+     */
+    public function getEntityDefinition($name)
     {
         return isset($this->schemas[$name]) ? $this->schemas[$name] : null;
     }

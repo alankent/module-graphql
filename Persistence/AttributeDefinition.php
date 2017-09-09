@@ -25,6 +25,9 @@ class AttributeDefinition
     /** @var bool */
     private $repeating;
 
+    /** @var bool */
+    private $scalar;
+
     /** @var callable */
     private $computeFunc;
 
@@ -32,20 +35,24 @@ class AttributeDefinition
      * Create a attribute definition referencing another entity.
      * @param string $attributeName The name of the attribute.
      * @param string $description The attribute description for developers to read. Should never be null.
-     * @param string $entityTypeName The name of the entity this attribute returns.
+     * @param string $typeName The name of the type this attribute returns.
      * @param bool $repeating True if the attribute can return zero or more values, false if at most one value.
      * @param bool $nullable True if the attribute can be null.
      */
-    public static function make(string $attributeName, string $description, string $entityTypeName, bool $repeating, bool $nullable, $computeFunc = null)
+    public static function make(string $attributeName, string $description, string $typeName, bool $repeating, bool $nullable, $computeFunc = null)
     {
         /** @var AttributeDefinition $def */
         $def = new self();
         $def->name = $attributeName;
         $def->description = $description;
-        $def->typeName = $entityTypeName;
+        $def->typeName = $typeName;
         $def->repeating = $repeating;
         $def->nullable = $nullable;
         $def->computeFunc = $computeFunc;
+
+        $scalarTypes = ['String'=>true, 'Int'=>true, 'Float'=>true, 'ID'=>true];
+        $def->scalar = isset($scalarTypes[$typeName]);
+
         return $def;
     }
 
@@ -109,5 +116,15 @@ class AttributeDefinition
     {
         return $this->computeFunc($val);
     }
-}
+
+
+    /**
+     * Returns true if attribute is scalar (not an entity reference). This means there
+     * is no need to look for sub-attributes to return.
+     * @return bool True if a scalar type, false otherwise.
+     */
+    public function isScalar(): bool
+    {
+        return $this->scalar;
+    }}
 

@@ -12,9 +12,6 @@ use \AlanKent\GraphQL\Persistence\EntityDefinition;
  */
 class Entity
 {
-    /**@ var string */
-    private $name;
-
     /**@ var array */
     private $entityDefinition;
 
@@ -23,16 +20,13 @@ class Entity
 
     /**
      * Constructor.
-     * @param string $name
      * @param EntityDefinition $schema
      * @param Object $dataEntity
      */
     public function __construct(
-        string $name,
         EntityDefinition $schema,
         $dataEntity
     ) {
-        $this->name = $name;
         $this->entityDefinition = $schema;
         $this->dataEntity = $dataEntity;
     }
@@ -40,22 +34,24 @@ class Entity
     /**
      * Return the entity name.
      */
-    public function getName(): string {
-        return $this->name;
+    public function getName(): string
+    {
+        return $this->entityDefinition->getName();
     }
 
     /**
      * Return the entity description.
      */
-    public function getDescription(): string {
+    public function getDescription(): string
+    {
         return $this->entityDefinition->getDescription();
     }
 
     /**
      * Given an data entity, fetch the specified attribute.
      */
-    public function getAttribute($code) {
-
+    public function getAttribute($code)
+    {
         // Look up attribute in schema.
         $attributeDef = $this->entityDefinition->getAttribute($code);
         if ($attributeDef == null) {

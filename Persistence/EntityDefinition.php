@@ -59,7 +59,7 @@ class EntityDefinition
      * @param string $name The requested attribute name.
      * @return AttributeDefinition|null The attribute definition, or null if not recognized.
      */
-    public function getAttribute(string $name): AttributeDefinition
+    public function getAttribute(string $name)
     {
         return isset($this->attributes[$name]) ? $this->attributes[$name] : null;
     }
