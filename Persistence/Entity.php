@@ -16,7 +16,7 @@ class Entity
     private $name;
 
     /**@ var array */
-    private $schema;
+    private $entityDefinition;
 
     /**@ var Object */
     private $dataEntity;
@@ -29,11 +29,11 @@ class Entity
      */
     public function __construct(
         string $name,
-        EntityDefintion $schema,
+        EntityDefinition $schema,
         $dataEntity
     ) {
         $this->name = $name;
-        $this->schema = $schema;
+        $this->entityDefinition = $schema;
         $this->dataEntity = $dataEntity;
     }
 
@@ -48,7 +48,7 @@ class Entity
      * Return the entity description.
      */
     public function getDescription(): string {
-        return $this->schema['description'];
+        return $this->entityDefinition->getDescription();
     }
 
     /**
@@ -57,16 +57,15 @@ class Entity
     public function getAttribute($code) {
 
         // Look up attribute in schema.
-        if (!isset($this->schema['fields'][$code])) {
+        $attributeDef = $this->entityDefinition->getAttribute($code);
+        if ($attributeDef == null) {
             // TODO: Throw exception?
             return null;
         }
-        $fieldSchema = $this->schema['fields'][$code];
 
         // See if custom function defined.
-        if (isset($fieldSchema['resolve'])) {
-            $func = $fieldSchema['resolve'];
-            return $func($this->dataEntity, $code, $fieldSchema);
+        if ($attributeDef->isComputed()) {
+            return $attributeDef->compute($this->dataEntity); // TODO: Not implemented yet.
         }
 
         // Try as a direct attribute.

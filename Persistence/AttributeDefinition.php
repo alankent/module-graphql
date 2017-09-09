@@ -16,9 +16,6 @@ class AttributeDefinition
     /** @var string */
     private $description;
 
-    /** @var bool */
-    private $scalar;
-
     /** @var string */
     private $typeName;
 
@@ -28,26 +25,8 @@ class AttributeDefinition
     /** @var bool */
     private $repeating;
 
-    /**
-     * Creates a scalar attribute definition from attribute name, type, and nullable flag.
-     * @param string $attributeName The attribute name. Should never be null.
-     * @param string $description The attribute description for developers to read. Should never be null.
-     * @param String $typeName The attribute type ("String", "Int", "Float") TODO: Add more types.
-     * @param bool $nullable True if the attribute can be null.
-     * @return AttributeDefinition The constructed attribute definition.
-     */
-    public static function makeScalar(string $attributeName, string $description, string $scalarTypeName, bool $nullable)
-    {
-        /** @var AttributeDefinition $def */
-        $def = new self();
-        $def->name = $attributeName;
-        $def->description = $description;
-        $def->scalar = true;
-        $def->typeName = $scalarTypeName;
-        $def->nullable = $nullable;
-        $def->repeating = false;
-        return $def;
-    }
+    /** @var callable */
+    private $computeFunc;
 
     /**
      * Create a attribute definition referencing another entity.
@@ -55,20 +34,18 @@ class AttributeDefinition
      * @param string $description The attribute description for developers to read. Should never be null.
      * @param string $entityTypeName The name of the entity this attribute returns.
      * @param bool $repeating True if the attribute can return zero or more values, false if at most one value.
-     * @param bool $nullable False if attribute is repeating (a zero sized array is returned, never null). For non
-     * repeating attributes, returns true if a single entity is sometimes returned or null is returned, false if
-     * an entity is always returned.
+     * @param bool $nullable True if the attribute can be null.
      */
-    public static function makeEntity(string $attributeName, string $description, string $entityTypeName, bool $repeating, bool $nullable)
+    public static function make(string $attributeName, string $description, string $entityTypeName, bool $repeating, bool $nullable, $computeFunc = null)
     {
         /** @var AttributeDefinition $def */
         $def = new self();
         $def->name = $attributeName;
         $def->description = $description;
-        $def->scalar = false;
         $def->typeName = $entityTypeName;
         $def->repeating = $repeating;
         $def->nullable = $nullable;
+        $def->computeFunc = $computeFunc;
         return $def;
     }
 
@@ -88,15 +65,6 @@ class AttributeDefinition
     public function getDescription(): string
     {
         return $this->description;
-    }
-
-    /**
-     * Return true if this attribute has a scalar type (if false, it has an entity type).
-     * @return bool True if a scalar type, false otherwise.
-     */
-    public function isScalar(): bool
-    {
-        return $this->scalar;
     }
 
     /**
@@ -126,6 +94,20 @@ class AttributeDefinition
     public function isRepeating(): bool
     {
         return $this->repeating;
+    }
+
+    /**
+     * Return true if this attribute is computed from other attributes, not stored in the database.
+     * @return bool True if the attibute is computed (read only).
+     */
+    public function isComputed(): bool
+    {
+        return $this->computeFunc != null;
+    }
+
+    public function compute($val)
+    {
+        return $this->computeFunc($val);
     }
 }
 

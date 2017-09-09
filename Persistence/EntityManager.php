@@ -2,9 +2,8 @@
 
 namespace AlanKent\GraphQL\Persistence;
 
-use AlanKent\GraphQL\PersistenceAttributeDefinition;
-use AlanKent\GraphQL\PersistenceEntityDefinition;
-use Magento\Customer\Api\Data\CustomerInterface;
+use AlanKent\GraphQL\Persistence\AttributeDefinition as AD;
+use AlanKent\GraphQL\Persistence\EntityDefinition as ED;
 
 
 /**
@@ -32,81 +31,81 @@ class EntityManager
         // TODO: Hard coded for now.
         $this->schemas = [];
         foreach ([
-            EntityDefinition::make('Customer', 'Customer entity.', [
-                AttributeDefinition::makeScalar('id', 'Customer id', 'ID', false),
-                AttributeDefinition::makeScalar('name', 'Customer name', 'String', false),
-                AttributeDefinition::makeScalar('email', 'Customer email address', 'String', false),
-                AttributeDefinition::makeEntity('addresses', 'Customer addresses', 'Address', true, false),
-                AttributeDefinition::makeEntity('quotes', 'Quotes for this customer', 'Quote', true, false),
-                AttributeDefinition::makeEntity('wishlists', 'Wishlists for this customer', 'Wishlist', true, false),
+            ED::make('Customer', 'Customer entity.', [
+                AD::make('id', 'Customer id', 'ID', false, false),
+                AD::make('name', 'Customer name', 'String', false, false),
+                AD::make('email', 'Customer email address', 'String', false, false),
+                AD::make('addresses', 'Customer addresses', 'Address', true, false),
+                AD::make('quotes', 'Quotes for this customer', 'Quote', true, false),
+                AD::make('wishlists', 'Wishlists for this customer', 'Wishlist', true, false),
             ]),
-            EntityDefinition::make('Address', 'Address entity.', [
-                AttributeDefinition::makeScalar('id', 'Address id', 'ID', false),
-                AttributeDefinition::makeScalar('country', 'Country', 'String', false),
-                AttributeDefinition::makeScalar('city', 'City', 'String', false),
-                AttributeDefinition::makeScalar('street', 'Street', 'String', false),
-                AttributeDefinition::makeScalar('zip', 'Street', 'String', false),
+            ED::make('Address', 'Address entity.', [
+                AD::make('id', 'Address id', 'ID', false, false),
+                AD::make('country', 'Country', 'String', false, false),
+                AD::make('city', 'City', 'String', false, false),
+                AD::make('street', 'Street', 'String', false, false),
+                AD::make('zip', 'Street', 'String', false, false),
             ]),
-            EntityDefinition::make('Quote', 'Quote entity.', [
-                AttributeDefinition::makeScalar('id', 'Quote id', 'ID', false),
-                AttributeDefinition::makeScalar('name', 'Quote name', 'String', false),
-                AttributeDefinition::makeEntity('items', 'Items in quote', 'QuoteItem', true, false),
-                AttributeDefinition::makeScalar('isDefault', 'True if the default', 'Boolean', false),
+            ED::make('Quote', 'Quote entity.', [
+                AD::make('id', 'Quote id', 'ID', false, false),
+                AD::make('name', 'Quote name', 'String', false, false),
+                AD::make('items', 'Items in quote', 'QuoteItem', true, false),
+                AD::make('isDefault', 'True if the default', 'Boolean', false, false),
             ]),
-            EntityDefinition::make('QuoteItem', 'Quote item entity.', [
-                AttributeDefinition::makeScalar('id', 'Quote id', 'ID', false),
-                AttributeDefinition::makeEntity('product', 'Product added to quote', 'Product', false, false),
-                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
-                AttributeDefinition::makeEntity('options', 'Product options for item in quote', 'ProductOption', true, false),
+            ED::make('QuoteItem', 'Quote item entity.', [
+                AD::make('id', 'Quote id', 'ID', false, false),
+                AD::make('product', 'Product added to quote', 'Product', false, false),
+                AD::make('qty', 'Quantity of item', 'Float', false, false),
+                AD::make('options', 'Product options for item in quote', 'ProductOption', true, false),
             ]),
-            EntityDefinition::make('Wishlist', 'Wishlist entity.', [
-                AttributeDefinition::makeScalar('id', 'Wishlist id', 'ID', false),
-                AttributeDefinition::makeScalar('name', 'Wishlist name', 'String', false),
-                AttributeDefinition::makeEntity('items', 'Items in wishlist', 'WishlistItem', true, false),
-                AttributeDefinition::makeScalar('isDefault', 'True if the default', 'Boolean', false),
+            ED::make('Wishlist', 'Wishlist entity.', [
+                AD::make('id', 'Wishlist id', 'ID', false, false),
+                AD::make('name', 'Wishlist name', 'String', false, false),
+                AD::make('items', 'Items in wishlist', 'WishlistItem', true, false),
+                AD::make('isDefault', 'True if the default', 'Boolean', false, false),
             ]),
-            EntityDefinition::make('WishlistItem', 'Wishlist item entity.', [
-                AttributeDefinition::makeScalar('id', 'Wishlist item id', 'ID', false),
-                AttributeDefinition::makeEntity('product', 'Product added to wishlist', 'Product', false, true),
-                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
-                AttributeDefinition::makeEntity('options', 'Product options for item in wishlist', 'ProductOption', true, false),
+            ED::make('WishlistItem', 'Wishlist item entity.', [
+                AD::make('id', 'Wishlist item id', 'ID', false, false),
+                AD::make('product', 'Product added to wishlist', 'Product', false, true),
+                AD::make('qty', 'Quantity of item', 'Float', false, false),
+                AD::make('options', 'Product options for item in wishlist', 'ProductOption', true, false),
             ]),
-            EntityDefinition::make('Order', 'Order entity.', [
-                AttributeDefinition::makeScalar('id', 'Order id', 'ID', false),
-                AttributeDefinition::makeEntity('items', 'Items in wishlist', 'OrderItem', true, false),
-                AttributeDefinition::makeEntity('billingAddress', 'Billing address', 'Address', false, true),
-                AttributeDefinition::makeEntity('shippingAddress', 'Shipping address', 'Address', false, true),
-                AttributeDefinition::makeScalar('shippingMethod', 'Shipping method', 'String', false),
-                AttributeDefinition::makeEntity('paymentInfo', 'Payment information', 'PaymentInfo', true, false),
+            ED::make('Order', 'Order entity.', [
+                AD::make('id', 'Order id', 'ID', false, false),
+                AD::make('items', 'Items in wishlist', 'OrderItem', true, false),
+                AD::make('billingAddress', 'Billing address', 'Address', false, true),
+                AD::make('shippingAddress', 'Shipping address', 'Address', false, true),
+                AD::make('shippingMethod', 'Shipping method', 'String', false, false),
+                AD::make('paymentInfo', 'Payment information', 'PaymentInfo', false, true, false),
             ]),
-            EntityDefinition::make('OrderItem', 'Order item entity.', [
-                AttributeDefinition::makeScalar('id', 'Order item id', 'ID', false),
-                AttributeDefinition::makeEntity('product', 'Product added to Order', 'Product', false, true),
-                AttributeDefinition::makeScalar('qty', 'Quantity of item', 'Float', false),
-                AttributeDefinition::makeEntity('options', 'Product options for item in order', 'ProductOption', true, false),
+            ED::make('OrderItem', 'Order item entity.', [
+                AD::make('id', 'Order item id', 'ID', false, false),
+                AD::make('product', 'Product added to Order', 'Product', false, true),
+                AD::make('qty', 'Quantity of item', 'Float', false, false),
+                AD::make('options', 'Product options for item in order', 'ProductOption', true, false),
             ]),
-            EntityDefinition::make('PaymentInfo', 'Order item entity.', [
-                AttributeDefinition::makeScalar('id', 'Payment info id', 'ID', false),
-                AttributeDefinition::makeScalar('paymentMethodCode', 'Payment method', 'String', false),
-                AttributeDefinition::makeScalar('amount', 'Payment amount', 'Float', false),
+            ED::make('PaymentInfo', 'Order item entity.', [
+                AD::make('id', 'Payment info id', 'ID', false, false),
+                AD::make('paymentMethodCode', 'Payment method', 'String', false, false),
+                AD::make('amount', 'Payment amount', 'Float', false, false),
             ]),
-            EntityDefinition::make('Return', 'Order item entity.', [
-                AttributeDefinition::makeScalar('id', 'Return id', 'ID', false),
-                AttributeDefinition::makeScalar('orderId', 'Order that was returned', 'String', false),
-                AttributeDefinition::makeEntity('items', 'Returned items', 'OrderItem', true, false),
+            ED::make('Return', 'Order item entity.', [
+                AD::make('id', 'Return id', 'ID', false, false),
+                AD::make('orderId', 'Order that was returned', 'String', false, false),
+                AD::make('items', 'Returned items', 'OrderItem', true, false),
             ]),
-            EntityDefinition::make('Product', 'Product.', [
-                AttributeDefinition::makeScalar('id', 'Product id', 'ID', false),
-                AttributeDefinition::makeScalar('sku', 'SKU', 'String', false),
-                AttributeDefinition::makeScalar('description', 'Product description.', 'String', false),
+            ED::make('Product', 'Product.', [
+                AD::make('id', 'Product id', 'ID', false, false),
+                AD::make('sku', 'SKU', 'String', false, false),
+                AD::make('description', 'Product description.', 'String', false, false),
             ]),
-            EntityDefinition::make('ProductOption', 'Product option.', [
-                AttributeDefinition::makeScalar('attribute', 'Product attribute.', 'String', false),
-                AttributeDefinition::makeScalar('value', 'Value selected when product was ordered', 'String', false),
+            ED::make('ProductOption', 'Product option.', [
+                AD::make('attribute', 'Product attribute.', 'String', false, false),
+                AD::make('value', 'Value selected when product was ordered', 'String', false, false),
             ]),
-            EntityDefinition::make('Comment', 'Product option.', [
-                AttributeDefinition::makeScalar('author', 'Author of comment.', 'String', false),
-                AttributeDefinition::makeScalar('text', 'Comment text.', 'String', false),
+            ED::make('Comment', 'Product option.', [
+                AD::make('author', 'Author of comment.', 'String', false, false),
+                AD::make('text', 'Comment text.', 'String', false, false),
             ]),
         ] as $entityDef) {
             $this->schemas[$entityDef->getName()] = $entityDef;

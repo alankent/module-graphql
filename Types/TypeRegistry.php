@@ -188,49 +188,76 @@ class TypeRegistry
      * are created. These are close, but not identical.
      */
     private function compileType(string $entityName) {
-        /** @var EntityDefinition $schema */
-        $schema = $this->entityManager->getEntityDefinition($entityName);
-        if ($schema == null) {
+        /** @var EntityDefinition $entityDef */
+        $entityDef = $this->entityManager->getEntityDefinition($entityName);
+        if ($entityDef == null) {
             throw new \Exception("Unknown type '$entityName'.");
         }
 
         $this->outputTypes[$entityName] = new ObjectType([
             'name' => $entityName,
-            'description' => $schema->getDescription(),
-            'fields' => function() use($schema) {
+            'description' => $entityDef->getDescription(),
+            'fields' => function() use($entityDef) {
                 // Use a function here so all types can be declared before field types are resolved.
                 $fields = [];
-                foreach ($schema->getAttributes() as $attribute) {
-                    $fields[$attribute->getName()] = [
-                        'type' => $this->makeOutputType($attribute->getTypeName()),
+                foreach ($entityDef->getAttributes() as $attribute) {
+                    $type = $this->makeOutputType($attribute->getTypeName());
+                    if ($attribute->isRepeating()) {
+                        $type = Type::listOf(Type::nonNull($type));
+                    }
+                    if (!$attribute->isNullable()) {
+                        $type = Type::nonNull($type);
+                    }
+                    $fieldDef = [
+                        'type' => $type,
                         'description' => $attribute->getDescription(),
                         'resolve' => function($val, $args, $context, $info) use ($attribute) {
                                 /** @var \AlanKent\GraphQL\Persistence\Entity $val */
                                 return $val->getAttribute($attribute->getName());
                             },
                     ];
+                    if ($attribute->isRepeating()) {
+                        $fieldDef['args'] = [
+                            'start' => [
+                                'type' => Type::int(),
+                                'defaultValue' => 0,
+                                'description' => 'Offset of first value to return.'
+                            ],
+                            'limit' => [
+                                'type' => Type::int(),
+                                'description' => 'Maximum values to return from array (default is all values).'
+                            ],
+                        ];
+                    }
+                    $fields[$attribute->getName()] = $fieldDef;
                 }
                 return $fields;
             }
         ]);
 
-        // Skip over fields of type "ID"/"ID!", and fields with custom 'resolve' functions
-        // as they are "computed" attributes (not store in database).
+        // Skip over fields of type "ID", and computed fields as they are not store in database.
         $this->inputTypes[$entityName] = new InputObjectType([
             'name' => $entityName . 'Input',
-            'description' => $schema->getDescription(),
-            'fields' => function() use($schema) {
+            'description' => $entityDef->getDescription(),
+            'fields' => function() use($entityDef) {
                 $fields = [];
-                foreach ($schema->getAttributes() as $fn => $fv) {
-                    if (!$fv->isScalar() || $fv->getTypeName() !== 'ID') {
-                        $fields[$fn] = [
-                            'type' => $this->makeInputType($fv->getTypeName()),
-                            'description' => $fv->getDescription(),
+                foreach ($entityDef->getAttributes() as $attribute) {
+                    if ($attribute->getTypeName() !== 'ID' && !$attribute->isComputed()) {
+                        $type = $this->makeInputType($attribute->getTypeName());
+                        if ($attribute->isRepeating()) {
+                            $type = Type::listOf(Type::nonNull($type));
+                        }
+                        if (!$attribute->isNullable()) {
+                            $type = Type::nonNull($type);
+                        }
+                        $fields[$attribute->getName()] = [
+                            'type' => $type,
+                            'description' => $attribute->getDescription(),
                         ];
                     }
                 }
                 if (count($fields) == 0) {
-                    $entityName = $schema->getName();
+                    $entityName = $entityDef->getName();
                     throw new \Exception("Type '$entityName' has no input fields.'");
                 }
                 return $fields;
