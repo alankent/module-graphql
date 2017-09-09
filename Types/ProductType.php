@@ -10,9 +10,9 @@ class ProductType extends ObjectType
 {
     /**
      * Constructor.
-     * @param \AlanKent\GraphQL\App\EntityManager $entityManager
+     * @param \AlanKent\GraphQL\Persistence\EntityManager $entityManager
      */
-    public function __construct(\AlanKent\GraphQL\App\EntityManager $entityManager)
+    public function __construct(\AlanKent\GraphQL\Persistence\EntityManager $entityManager)
     {
         $entity = $entityManager->getEntity('Product');
 

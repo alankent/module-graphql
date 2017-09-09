@@ -2,7 +2,7 @@
 
 namespace AlanKent\GraphQL\Types;
 
-use AlanKent\GraphQL\App\Entity;
+use AlanKent\GraphQL\Persistence\Entity;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;

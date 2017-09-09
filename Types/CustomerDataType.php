@@ -14,7 +14,7 @@ class CustomerDataType extends ObjectType
     /**
      * Constructor.
      */
-    public function __construct(\AlanKent\GraphQL\App\EntityManager $entityManager)
+    public function __construct(\AlanKent\GraphQL\Persistence\EntityManager $entityManager)
     {
         $config = [
             'name' => 'CustomerData',

@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Persistence;
 
 
 /**

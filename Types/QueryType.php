@@ -2,14 +2,14 @@
 
 namespace AlanKent\GraphQL\Types;
 
-use AlanKent\GraphQL\App\Entity;
+use AlanKent\GraphQL\Persistence\Entity;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 
 class QueryType extends ObjectType
 {
-    /** @var \AlanKent\GraphQL\App\EntityManager */
+    /** @var \AlanKent\GraphQL\Persistence\EntityManager */
     private $entityManager;
 
     /** @var \AlanKent\GraphQL\Types\TypeRegistry */
@@ -22,13 +22,13 @@ class QueryType extends ObjectType
      * Constructor.
      * @param \AlanKent\GraphQL\Types\AutoEntitiesTypeFactory $autoFactory
      * @param \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory
-     * @param \AlanKent\GraphQL\App\EntityManager $entityManager
+     * @param \AlanKent\GraphQL\Persistence\EntityManager $entityManager
      * @param TypeRegistry $typeRegistry
      */
     public function __construct(
         \AlanKent\GraphQL\Types\AutoEntitiesTypeFactory $autoFactory,
         \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory,
-        \AlanKent\GraphQL\App\EntityManager $entityManager,
+        \AlanKent\GraphQL\Persistence\EntityManager $entityManager,
         \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry,
         \Magento\Framework\Api\SearchCriteriaInterfaceFactory $searchCriteriaFactory
     ) {

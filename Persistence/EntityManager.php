@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Persistence;
 
 use Magento\Customer\Api\Data\CustomerInterface;
 
@@ -20,10 +20,10 @@ class EntityManager
 
     /**
      * Constructor.
-     * @param \AlanKent\GraphQL\App\EntityFactory $entityFactory
+     * @param \AlanKent\GraphQL\Persistence\EntityFactory $entityFactory
      */
     public function __construct(
-        \AlanKent\GraphQL\App\EntityFactory $entityFactory
+        \AlanKent\GraphQL\Persistence\EntityFactory $entityFactory
     ) {
         $this->entityFactory = $entityFactory;
 

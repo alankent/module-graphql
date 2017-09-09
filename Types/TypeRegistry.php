@@ -2,7 +2,7 @@
 
 namespace AlanKent\GraphQL\Types;
 
-use AlanKent\GraphQL\App\EntityManager;
+use AlanKent\GraphQL\Persistence\EntityManager;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
@@ -205,7 +205,7 @@ class TypeRegistry
                         'resolve' => isset($fv['resolve'])
                             ? $resolveFunc = $fv['resolve']
                             : function($val, $args, $context, $info) use ($fn) {
-                                /** @var \AlanKent\GraphQL\App\Entity $val */
+                                /** @var \AlanKent\GraphQL\Persistence\Entity $val */
                                 return $val->getAttribute($fn);
                             },
                     ];

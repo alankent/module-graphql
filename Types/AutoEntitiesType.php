@@ -18,10 +18,10 @@ class AutoEntitiesType extends ObjectType
     /**
      * Constructor.
      * param \Magento\Webapi\Model\ServiceMetadata $serviceMetadata
-     * @param \AlanKent\GraphQL\App\EntityManager $entityManager
+     * @param \AlanKent\GraphQL\Persistence\EntityManager $entityManager
      */
     public function __construct(
-        \AlanKent\GraphQL\App\EntityManager $entityManager
+        \AlanKent\GraphQL\Persistence\EntityManager $entityManager
     ) {
         $fields = [];
         foreach ($entityManager->listEntities() as $entityName) {
