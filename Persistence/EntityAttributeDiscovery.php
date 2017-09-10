@@ -1,6 +1,6 @@
 <?php
 
-namespace AlanKent\GraphQL\App;
+namespace AlanKent\GraphQL\Persistence;
 
 
 /**
@@ -9,7 +9,7 @@ namespace AlanKent\GraphQL\App;
  * automatically using code like this. For now, the list of attributes is hard
  * coded into the EntityManager implementation.
  */
-class ObjectMetadata
+class EntityAttributeDiscovery
 {
     /**
      * @var \Magento\Framework\Api\ExtensionAttribute\Config;
@@ -80,11 +80,7 @@ class ObjectMetadata
      */
     public function getMetadata($dataInterfaceName)
     {
-        $fields = [
-            'core_attributes' => [],
-            'extension_attributes' => [],
-            'custom_attributes' => []
-        ];
+        $fields = [];
 
         $methodsToSkip = ['getCustomAttribute', 'getCustomAttributes'];
         foreach ($this->classMethodMap->getMethodsMap($dataInterfaceName) as $methodName => $methodMetadata) {
@@ -93,13 +89,13 @@ class ObjectMetadata
             }
             $field = $this->fieldNameResolver->getFieldNameForMethodName($methodName);
             if ($field) {
-                $fields['core_attributes'][$field] = $methodMetadata['type'];
+                $fields[$field] = $methodMetadata['type'];
             }
         }
         $extensionAttrs = $this->extensionAttrConfig->get($dataInterfaceName);
         if ($extensionAttrs !== null) {
             foreach ($extensionAttrs as $extensionAttrName => $extensionAttr) {
-                $fields['extension_attributes'][$extensionAttrName] = $extensionAttr['type'];
+                $fields[$extensionAttrName] = $extensionAttr['type'];
             }
         }
 
@@ -109,10 +105,34 @@ class ObjectMetadata
                 $searchCriteria = $this->criteriaBuilder->create();
                 $searchResult = $this->customAttrRepository->getList($eavEntityType, $searchCriteria);
                 foreach ($searchResult->getItems() as $customAttr) {
-                    $fields['custom_attributes'][$customAttr->getAttributeCode()] = $customAttr->getBackendType();
+                    $fields[$customAttr->getAttributeCode()] = $customAttr->getBackendType();
                 }
             }
         }
-        return $fields;
+        $fields2 = [];
+        foreach ($fields as $fieldName => $fieldType) {
+            if ($fieldType === 'int') $fields2[$fieldName] = 'Int';
+            if ($fieldType === 'decimal') $fields2[$fieldName] = 'Float';
+            if ($fieldType === 'varchar') $fields2[$fieldName] = 'String';
+            if ($fieldType === 'text') $fields2[$fieldName] = 'String';
+            if ($fieldType === 'datetime') $fields2[$fieldName] = 'String';
+            if ($fieldType === 'static') $fields2[$fieldName] = 'String';
+//            if ($fieldType === 'int[]') $fields2[$fieldName] = '[Int!]';
+//            'extension_attributes' => string '\Magento\Catalog\Api\Data\ProductExtensionInterface' (length=51)
+//  'product_links' => string '\Magento\Catalog\Api\Data\ProductLinkInterface[]' (length=48)
+//  'options' => string '\Magento\Catalog\Api\Data\ProductCustomOptionInterface[]' (length=56)
+//  'media_gallery_entries' => string '\Magento\Catalog\Api\Data\ProductAttributeMediaGalleryEntryInterface[]' (length=70)
+//  'tier_prices' => string '\Magento\Catalog\Api\Data\ProductTierPriceInterface[]' (length=53)
+//  'website_ids' => string 'int[]' (length=5)
+//  'category_links' => string 'Magento\Catalog\Api\Data\CategoryLinkInterface[]' (length=48)
+//  'bundle_product_options' => string 'Magento\Bundle\Api\Data\OptionInterface[]' (length=41)
+//  'stock_item' => string 'Magento\CatalogInventory\Api\Data\StockItemInterface' (length=52)
+//  'downloadable_product_links' => string 'Magento\Downloadable\Api\Data\LinkInterface[]' (length=45)
+//  'downloadable_product_samples' => string 'Magento\Downloadable\Api\Data\SampleInterface[]' (length=47)
+//  'configurable_product_options' => string 'Magento\ConfigurableProduct\Api\Data\OptionInterface[]' (length=54)
+        }
+//        var_dump($fields);
+//        var_dump($fields2);
+        return $fields2;
     }
 }

@@ -17,16 +17,22 @@ class EntityManager
     /** @var \AlanKent\GraphQL\App\EntityFactory */
     private $entityFactory;
 
+    /** @var \AlanKent\GraphQL\Persistence\EntityAttributeDiscovery */
+    private $discovery;
+
     private $schemas;
 
     /**
      * Constructor.
      * @param \AlanKent\GraphQL\Persistence\EntityFactory $entityFactory
+     * @param \AlanKent\GraphQL\Persistence\EntityAttributeDiscovery $discovery
      */
     public function __construct(
-        \AlanKent\GraphQL\Persistence\EntityFactory $entityFactory
+        \AlanKent\GraphQL\Persistence\EntityFactory $entityFactory,
+        \AlanKent\GraphQL\Persistence\EntityAttributeDiscovery $discovery
     ) {
         $this->entityFactory = $entityFactory;
+        $this->discovery = $discovery;
 
         // TODO: Hard coded for now.
         $this->schemas = [];
@@ -94,11 +100,6 @@ class EntityManager
                 AD::make('orderId', 'Order that was returned', 'String', false, false),
                 AD::make('items', 'Returned items', 'OrderItem', true, false),
             ]),
-            ED::make('Product', 'Product.', [
-                AD::make('id', 'Product id', 'ID', false, false),
-                AD::make('sku', 'SKU', 'String', false, false),
-                AD::make('description', 'Product description.', 'String', false, false),
-            ]),
             ED::make('ProductOption', 'Product option.', [
                 AD::make('attribute', 'Product attribute.', 'String', false, false),
                 AD::make('value', 'Value selected when product was ordered', 'String', false, false),
@@ -107,9 +108,20 @@ class EntityManager
                 AD::make('author', 'Author of comment.', 'String', false, false),
                 AD::make('text', 'Comment text.', 'String', false, false),
             ]),
+//             ED::make('Product', 'Product.', [
+//                 AD::make('id', 'Product id', 'ID', false, false),
+//                 AD::make('sku', 'SKU', 'String', false, false),
+//                 AD::make('description', 'Product description.', 'String', false, false),
+//             ]),
         ] as $entityDef) {
             $this->schemas[$entityDef->getName()] = $entityDef;
         }
+
+        $fields = [];
+        foreach ($this->discovery->getMetadata(\Magento\Catalog\Api\Data\ProductInterface::class) as $name => $type) {
+            $fields[] = AD::make($name, $name, $type, false, true);
+        }
+        $this->schemas['Product'] = ED::make('Product', 'Product.', $fields);
 
 //        [
 //            'id' =>             [ 'type' => 'int',     'description' => '' ],

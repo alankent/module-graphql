@@ -142,6 +142,10 @@ class QueryType extends ObjectType
                     'description' => 'Retrieve customer data',
                     'args' => [
                         // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
+                        'filter' => [
+                            'type' => $this->typeRegistry->makeFilterType('Product'),
+                            'description' => 'Only return products matching these filter conditions'
+                        ],
                         'start' => [
                             'type' => Type::int(),
                             'description' => 'Index of first product to return (default is 0).'
@@ -150,10 +154,6 @@ class QueryType extends ObjectType
                             'type' => Type::int(),
                             'description' => 'How many to try and return (default is all)'
                         ],
-                        'filter' => [
-                            'type' => $this->typeRegistry->makeFilterType('Product'),
-                            'description' => 'Only return products matching these filter conditions'
-                        ]
     //                        'storeId' => [
     //                            'type' => Type::int(),
     //                            'description' => 'The store view id, or omitted for the default store view.',
@@ -169,24 +169,29 @@ class QueryType extends ObjectType
                         /** @var \Magento\Catalog\Api\ProductRepositoryInterface $sc */
                         $sc = $context->getServiceContract(\Magento\Catalog\Api\ProductRepositoryInterface::class);
 
-    //                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
+//                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
 
+                        $pageSize = 100;
                         $start = 0;
                         if (isset($args['start'])) {
                             $start = $args['start'];
                         }
-                        $limit = 0;
+                        $limit = null;
                         if (isset($args['limit'])) {
                             $limit = $args['limit'];
+                            $pageSize = $start + $limit;
                         }
                         $searchCriteria = $this->searchCriteriaFactory->create();
-                        $searchCriteria->setPageSize(1);
-                        $searchCriteria->setCurrentPage($start);
-                        // TODO: CANNOT DO OFFSET AND COUNT: $searchCriteria->setPageCount($count);
+                        // TODO: CANNOT DO OFFSET AND COUNT CORRECTLY! $searchCriteria->setPageCount($count);
+                        $searchCriteria->setPageSize($pageSize);
+                        $searchCriteria->setCurrentPage(0);
                         $items = $sc->getList($searchCriteria)->getItems();
                         $val = [];
                         foreach ($items as $item) {
-                            if ($limit-- <= 0) {
+                            if ($start-- > 0) {
+                                continue;
+                            }
+                            if ($limit !== null && $limit-- <= 0) {
                                 break;
                             }
                             $val[] = $this->entityManager->getEntity($req, $item);
@@ -217,6 +222,17 @@ class QueryType extends ObjectType
         $startingFieldName = $info->path[count($info->path) - 1];
         $entityName = (string)$info->returnType;
 
+        // Type could be "[Customer!]!" - strip all the decorations.
+        if (substr($entityName, -1) == '!') {
+            $entityName = substr($entityName, 0, -1);
+        }
+        if (substr($entityName, -1) == ']') {
+            $entityName = substr($entityName, 1, -1);
+        }
+        if (substr($entityName, -1) == '!') {
+            $entityName = substr($entityName, 0, -1);
+        }
+
         // We need to find the selection node for the current query field.
         foreach ($info->fieldNodes as $fieldNode) {
             $fieldName = $fieldNode->name->value;
@@ -225,6 +241,9 @@ class QueryType extends ObjectType
                 // We found the current field. Now walk the tree of field requests,
                 // building up the EntityRequest object.
                 $entity = $this->entityManager->getEntityDefinition($entityName);
+                if ($entity == null) {
+                    throw new \Exception("Field '$fieldName' could not find entity '$entityName'.");
+                }
                 $entityReq = new EntityRequest($entity);
                 $this->walk($info, $entityReq, $fieldNode->selectionSet);
                 return $entityReq;
