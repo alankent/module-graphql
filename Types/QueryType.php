@@ -142,14 +142,18 @@ class QueryType extends ObjectType
                     'description' => 'Retrieve customer data',
                     'args' => [
                         // TODO: One recommendation was to always have one input arg with an InputType, not multiple args like is done here.
-                        'first' => [
+                        'start' => [
                             'type' => Type::int(),
                             'description' => 'Index of first product to return (default is 0).'
                         ],
-                        'count' => [
+                        'limit' => [
                             'type' => Type::int(),
-                            'description' => 'How many to return (default is all)'
+                            'description' => 'How many to try and return (default is all)'
                         ],
+                        'filter' => [
+                            'type' => $this->typeRegistry->makeFilterType('Product'),
+                            'description' => 'Only return products matching these filter conditions'
+                        ]
     //                        'storeId' => [
     //                            'type' => Type::int(),
     //                            'description' => 'The store view id, or omitted for the default store view.',
@@ -167,22 +171,22 @@ class QueryType extends ObjectType
 
     //                        $storeId = isset($args['storeId']) ? $args['storeId'] : null;
 
-                        $first = 0;
-                        if (isset($args['first'])) {
-                            $first = $args['first'];
+                        $start = 0;
+                        if (isset($args['start'])) {
+                            $start = $args['start'];
                         }
-                        $count = 0;
-                        if (isset($args['count'])) {
-                            $first = $args['count'];
+                        $limit = 0;
+                        if (isset($args['limit'])) {
+                            $limit = $args['limit'];
                         }
                         $searchCriteria = $this->searchCriteriaFactory->create();
                         $searchCriteria->setPageSize(1);
-                        $searchCriteria->setCurrentPage($first);
+                        $searchCriteria->setCurrentPage($start);
                         // TODO: CANNOT DO OFFSET AND COUNT: $searchCriteria->setPageCount($count);
                         $items = $sc->getList($searchCriteria)->getItems();
                         $val = [];
                         foreach ($items as $item) {
-                            if ($count-- <= 0) {
+                            if ($limit-- <= 0) {
                                 break;
                             }
                             $val[] = $this->entityManager->getEntity($req, $item);

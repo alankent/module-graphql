@@ -28,6 +28,10 @@ class TypeRegistry
     /** @var OutputType[] */
     private $outputTypes;
 
+    // Map of type names seen so far to GraphQL types.
+    /** @var InputType[] */
+    private $filterTypes;
+
     /** @var EntityManager */
     private $entityManager;
 
@@ -48,6 +52,56 @@ class TypeRegistry
         // Clones the arrays.
         $this->inputTypes = $scalarTypes;
         $this->outputTypes = $scalarTypes;
+
+        $this->filterTypes = [
+            'String' => new InputObjectType([
+                'name' => 'StringFilter',
+                'description' => 'String value filter constraints',
+                'fields' => [
+                    'eq' => [ 'type' => Type::string(), 'description' => 'Attribute equals constant.' ],
+                    'ne' => [ 'type' => Type::string(), 'description' => 'Attribute does not equal constant.' ],
+                    'like' => [ 'type' => Type::string(), 'description' => 'Attribute value matches LIKE pattern.' ],
+                ]
+            ]),
+            'Int' => new InputObjectType([
+                'name' => 'IntFilter',
+                'description' => 'Integer value filter constraints',
+                'fields' => [
+                    'eq' => [ 'type' => Type::int(), 'description' => 'Attribute = constant.' ],
+                    'ne' => [ 'type' => Type::int(), 'description' => 'Attribute <> constant.' ],
+                    'lt' => [ 'type' => Type::int(), 'description' => 'Attribute < constant.' ],
+                    'le' => [ 'type' => Type::int(), 'description' => 'Attribute <= constant.' ],
+                    'gt' => [ 'type' => Type::int(), 'description' => 'Attribute > constant.' ],
+                    'ge' => [ 'type' => Type::int(), 'description' => 'Attribute >= constant.' ],
+                ]
+            ]),
+            'Float' => new InputObjectType([
+                'name' => 'FloatFilter',
+                'description' => 'Float value filter constraints',
+                'fields' => [
+                    'eq' => [ 'type' => Type::float(), 'description' => 'Attribute = constant.' ],
+                    'ne' => [ 'type' => Type::float(), 'description' => 'Attribute <> constant.' ],
+                    'lt' => [ 'type' => Type::float(), 'description' => 'Attribute < constant.' ],
+                    'le' => [ 'type' => Type::float(), 'description' => 'Attribute <= constant.' ],
+                    'gt' => [ 'type' => Type::float(), 'description' => 'Attribute > constant.' ],
+                    'ge' => [ 'type' => Type::float(), 'description' => 'Attribute >= constant.' ],
+                ]
+            ]),
+            'ID' => new InputObjectType([
+                'name' => 'IDFilter',
+                'description' => 'ID value filter constraints',
+                'fields' => [
+                    'eq' => [ 'type' => Type::id(), 'description' => 'Attribute = constant.' ],
+                ]
+            ]),
+            'Boolean' => new InputObjectType([
+                'name' => 'BooleanFilter',
+                'description' => 'Boolean value filter constraints',
+                'fields' => [
+                    'eq' => [ 'type' => Type::boolean(), 'description' => 'Attribute = constant.' ],
+                ]
+            ]),
+        ];
     }
 
     /**
@@ -69,7 +123,8 @@ class TypeRegistry
      * @return OutputType
      * @throws \Exception
      */
-    public function getOutputType(string $objectName): OutputType {
+    public function getOutputType(string $objectName): OutputType
+    {
         if (isset($this->outputTypes[$objectName])) {
             return $this->outputTypes[$objectName];
         }
@@ -83,8 +138,8 @@ class TypeRegistry
      * @param string $typeString The string encoding of the type.
      * @return OutputType The GraphQL 'type' construct.
      */
-    public function makeOutputType(string $typeString): OutputType {
-
+    public function makeOutputType(string $typeString): OutputType
+    {
         // TODO: Should share the parsing code better with input & output functions.
 
         // Trim training '!' if present.
@@ -137,8 +192,8 @@ class TypeRegistry
      * @param string $typeString The string encoding of the type.
      * @return InputType The GraphQL 'type' construct.
      */
-    public function makeInputType(string $typeString): InputType {
-
+    public function makeInputType(string $typeString): InputType
+    {
         // Trim training '!' if present.
         $isRequired = false;
         if (substr($typeString, -1) === '!') {
@@ -183,11 +238,27 @@ class TypeRegistry
     }
 
     /**
+     * Convert a string such as "String" or "[Customer!]!" to the
+     * corresponding GraphQL type. The entity manager returns types
+     * as strings, which this function converts to the GraphQL form.
+     * @param string $typeName The string encoding of the type.
+     * @return OutputType The GraphQL 'type' construct.
+     */
+    public function makeFilterType(string $typeName): InputType
+    {
+        if (!isset($this->filterTypes[$typeName])) {
+            $this->compileType($typeName);
+        }
+        return $this->filterTypes[$typeName];
+    }
+
+    /**
      * Converts the schema returned by the entity manager into config
      * required by the GraphQL type system. An "InputType" and "OutputType"
      * are created. These are close, but not identical.
      */
-    private function compileType(string $entityName) {
+    private function compileType(string $entityName)
+    {
         /** @var EntityDefinition $entityDef */
         $entityDef = $this->entityManager->getEntityDefinition($entityName);
         if ($entityDef == null) {
@@ -227,6 +298,17 @@ class TypeRegistry
                                 'type' => Type::int(),
                                 'description' => 'Maximum values to return from array (default is all values).'
                             ],
+                            'filter' => [
+                                'type' => $this->makeFilterType($attribute->getTypeName()),
+                                'description' => 'Only return values matching filter constraint.'
+                            ],
+                        ];
+                    } else if (!$attribute->isScalar()) {
+                        $fieldDef['args'] = [
+                            'filter' => [
+                                'type' => $this->makeFilterType($attribute->getTypeName()),
+                                'description' => 'Only return values matching filter constraint.'
+                            ],
                         ];
                     }
                     $fields[$attribute->getName()] = $fieldDef;
@@ -260,6 +342,34 @@ class TypeRegistry
                     $entityName = $entityDef->getName();
                     throw new \Exception("Type '$entityName' has no input fields.'");
                 }
+                return $fields;
+            }
+        ]);
+
+        // Filters can specify all attributes.
+        $this->filterTypes[$entityName] = new InputObjectType([
+            'name' => $entityName . 'Filter',
+            'description' => 'Filter conditions for ' . $entityName . ' instances.',
+            'fields' => function() use($entityDef) {
+                $fields = [];
+
+                $fields['_join'] = [
+                    'type' => AnyAllType::singleton(),
+                    'description' => 'Join multiple conditions via AND or OR connectors'
+                ];
+
+                $fields['_children'] = [
+                    'type' => Type::listOf(Type::nonNull($this->makeFilterType($entityDef->getName()))),
+                    'description' => 'Join multiple conditions via AND or OR connectors'
+                ];
+
+                foreach ($entityDef->getAttributes() as $attribute) {
+                    $fields[$attribute->getName()] = [
+                        'type' => $this->makeFilterType($attribute->getTypeName()),
+                        'description' => $attribute->getName() . ' constraints.',
+                    ];
+                }
+
                 return $fields;
             }
         ]);
