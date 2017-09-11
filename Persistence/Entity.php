@@ -55,8 +55,8 @@ class Entity
         // Look up attribute in schema.
         $attributeDef = $this->entityDefinition->getAttribute($code);
         if ($attributeDef == null) {
-            // TODO: Throw exception?
-            return null;
+            $entityName = $this->getName();
+            throw new \Exception("Unknown attribute '$code' of '$entityName'");
         }
 
         // See if custom function defined.
@@ -72,7 +72,7 @@ class Entity
 
         // Try as an extension attribute
         if (method_exists($this->dataEntity, 'getExtensionAttributes')) {
-            $ext = $this->dataEntity->getExtensionAttributes($code);
+            $ext = $this->dataEntity->getExtensionAttributes();
             if (method_exists($ext, $getFn)) {
                 return $ext->$getFn();
             }
@@ -80,7 +80,10 @@ class Entity
 
         // Try as a custom attribute
         if ($this->dataEntity instanceof \Magento\Framework\Api\CustomAttributesDataInterface) {
-            return $this->dataEntity->getCustomAttribute($code)->getValue();
+            $customAttribute = $this->dataEntity->getCustomAttribute($code);
+            if ($customAttribute != null) {
+                return $customAttribute->getValue();
+            }
         }
 
         return null;

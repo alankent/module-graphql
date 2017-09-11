@@ -80,8 +80,11 @@ class EntityAttributeDiscovery
      */
     public function getMetadata($dataInterfaceName)
     {
+        // TODO: Still a work in progress. Needs to return additional metadata such as "can this be used in a filter?"
+
         $fields = [];
 
+        // TODO: Does this pick up too much? But needed to pick up the 'id' field. However you cannot query on these ones!
         $methodsToSkip = ['getCustomAttribute', 'getCustomAttributes'];
         foreach ($this->classMethodMap->getMethodsMap($dataInterfaceName) as $methodName => $methodMetadata) {
             if (in_array($methodName, $methodsToSkip)) {
@@ -92,13 +95,15 @@ class EntityAttributeDiscovery
                 $fields[$field] = $methodMetadata['type'];
             }
         }
-        $extensionAttrs = $this->extensionAttrConfig->get($dataInterfaceName);
-        if ($extensionAttrs !== null) {
-            foreach ($extensionAttrs as $extensionAttrName => $extensionAttr) {
-                $fields[$extensionAttrName] = $extensionAttr['type'];
-            }
-        }
 
+//        $extensionAttrs = $this->extensionAttrConfig->get($dataInterfaceName);
+//        if ($extensionAttrs !== null) {
+//            foreach ($extensionAttrs as $extensionAttrName => $extensionAttr) {
+//                $fields[$extensionAttrName] = $extensionAttr['type'];
+//            }
+//        }
+
+        // Work out custom attributes.  TODO: Actually, I think all attributes may be in the table, not only custom attributes.
         if ($this->entityMetadataPool->hasConfiguration($dataInterfaceName)) {
             $eavEntityType = $this->entityMetadataPool->getMetadata($dataInterfaceName)->getEavEntityType();
             if ($eavEntityType) {
@@ -109,8 +114,10 @@ class EntityAttributeDiscovery
                 }
             }
         }
+
         $fields2 = [];
         foreach ($fields as $fieldName => $fieldType) {
+            // TODO: This table is not complete - attributes with unknown types are just dropped.
             if ($fieldType === 'int') $fields2[$fieldName] = 'Int';
             if ($fieldType === 'decimal') $fields2[$fieldName] = 'Float';
             if ($fieldType === 'varchar') $fields2[$fieldName] = 'String';
