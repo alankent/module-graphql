@@ -58,47 +58,93 @@ class TypeRegistry
                 'name' => 'StringFilter',
                 'description' => 'String value filter constraints',
                 'fields' => [
+                    // TODO: Use 'from' and 'to' or 'ge' and 'le' combined? or 'between' with array of size 2
+                    // TODO: I am more used to eq, ne, gt, ge, lt, le,
+                    // TODO: Then in/nin, null/notnull? Why wasn't it "notin"?
+                    // TODO: How does "moreq" differ from "gteq"?
+                    'from' => [ 'type' => Type::string(), 'description' => "Attribute from value (used with 'to').'" ],
+                    'to' => [ 'type' => Type::string(), 'description' => "Attribute to value (used with 'from')." ],
                     'eq' => [ 'type' => Type::string(), 'description' => 'Attribute equals constant.' ],
-                    'ne' => [ 'type' => Type::string(), 'description' => 'Attribute does not equal constant.' ],
+                    'neq' => [ 'type' => Type::string(), 'description' => 'Attribute does not equal constant.' ],
                     'like' => [ 'type' => Type::string(), 'description' => 'Attribute value matches LIKE pattern.' ],
+                    'in' => [ 'type' => Type::listOf(Type::nonNull(Type::string())), 'description' => 'Attribute in list of values.' ],
+                    'nin' => [ 'type' => Type::listOf(Type::nonNull(Type::string())), 'description' => 'Attribute not in list of values.' ],
+                    'notnull' => [ 'type' => Type::boolean(), 'description' => 'Attribute is not null (value MUST be "true").' ],
+                    'null' => [ 'type' => Type::boolean(), 'description' => 'Attribute not null (value MUST be "true").' ],
+                    'moreq' => [ 'type' => Type::string(), 'description' => 'Attribute more or equal.' ], // TODO: SAME AS gteq???
+                    'gt' => [ 'type' => Type::string(), 'description' => 'Attribute greater than value.' ],
+                    'lt' => [ 'type' => Type::string(), 'description' => 'Attribute less than value.' ],
+                    'gteq' => [ 'type' => Type::string(), 'description' => 'Attribute greater than or equal to value.' ],
+                    'lteq' => [ 'type' => Type::string(), 'description' => 'Attribute less than or equal to value.' ],
+                    'finset' => [ 'type' => Type::string(), 'description' => 'Attribute in set of comma separated values.' ],
                 ]
             ]),
             'Int' => new InputObjectType([
                 'name' => 'IntFilter',
                 'description' => 'Integer value filter constraints',
                 'fields' => [
-                    'eq' => [ 'type' => Type::int(), 'description' => 'Attribute = constant.' ],
-                    'ne' => [ 'type' => Type::int(), 'description' => 'Attribute <> constant.' ],
-                    'lt' => [ 'type' => Type::int(), 'description' => 'Attribute < constant.' ],
-                    'le' => [ 'type' => Type::int(), 'description' => 'Attribute <= constant.' ],
-                    'gt' => [ 'type' => Type::int(), 'description' => 'Attribute > constant.' ],
-                    'ge' => [ 'type' => Type::int(), 'description' => 'Attribute >= constant.' ],
+                    'from' => [ 'type' => Type::int(), 'description' => "Attribute from value (used with 'to').'" ],
+                    'to' => [ 'type' => Type::int(), 'description' => "Attribute to value (used with 'from')." ],
+                    'eq' => [ 'type' => Type::int(), 'description' => 'Attribute equals constant.' ],
+                    'neq' => [ 'type' => Type::int(), 'description' => 'Attribute does not equal constant.' ],
+                    'like' => [ 'type' => Type::int(), 'description' => 'Attribute value matches LIKE pattern.' ],
+                    'in' => [ 'type' => Type::listOf(Type::nonNull(Type::int())), 'description' => 'Attribute in list of values.' ],
+                    'nin' => [ 'type' => Type::listOf(Type::nonNull(Type::int())), 'description' => 'Attribute not in list of values.' ],
+                    'notnull' => [ 'type' => Type::boolean(), 'description' => 'Attribute is not null (value MUST be "true").' ],
+                    'null' => [ 'type' => Type::boolean(), 'description' => 'Attribute not null (value MUST be "true").' ],
+                    'moreq' => [ 'type' => Type::int(), 'description' => 'Attribute more or equal.' ], // TODO: SAME AS gteq???
+                    'gt' => [ 'type' => Type::int(), 'description' => 'Attribute greater than value.' ],
+                    'lt' => [ 'type' => Type::int(), 'description' => 'Attribute less than value.' ],
+                    'gteq' => [ 'type' => Type::int(), 'description' => 'Attribute greater than or equal to value.' ],
+                    'lteq' => [ 'type' => Type::int(), 'description' => 'Attribute less than or equal to value.' ],
+                    'finset' => [ 'type' => Type::string(), 'description' => 'Attribute in set of comma separated values.' ],
                 ]
             ]),
             'Float' => new InputObjectType([
                 'name' => 'FloatFilter',
                 'description' => 'Float value filter constraints',
                 'fields' => [
-                    'eq' => [ 'type' => Type::float(), 'description' => 'Attribute = constant.' ],
-                    'ne' => [ 'type' => Type::float(), 'description' => 'Attribute <> constant.' ],
-                    'lt' => [ 'type' => Type::float(), 'description' => 'Attribute < constant.' ],
-                    'le' => [ 'type' => Type::float(), 'description' => 'Attribute <= constant.' ],
-                    'gt' => [ 'type' => Type::float(), 'description' => 'Attribute > constant.' ],
-                    'ge' => [ 'type' => Type::float(), 'description' => 'Attribute >= constant.' ],
+                    'from' => [ 'type' => Type::float(), 'description' => "Attribute from value (used with 'to').'" ],
+                    'to' => [ 'type' => Type::float(), 'description' => "Attribute to value (used with 'from')." ],
+                    'eq' => [ 'type' => Type::float(), 'description' => 'Attribute equals constant.' ],
+                    'neq' => [ 'type' => Type::float(), 'description' => 'Attribute does not equal constant.' ],
+                    'like' => [ 'type' => Type::float(), 'description' => 'Attribute value matches LIKE pattern.' ],
+                    'in' => [ 'type' => Type::listOf(Type::nonNull(Type::float())), 'description' => 'Attribute in list of values.' ],
+                    'nin' => [ 'type' => Type::listOf(Type::nonNull(Type::float())), 'description' => 'Attribute not in list of values.' ],
+                    'notnull' => [ 'type' => Type::boolean(), 'description' => 'Attribute is not null (value MUST be "true").' ],
+                    'null' => [ 'type' => Type::boolean(), 'description' => 'Attribute not null (value MUST be "true").' ],
+                    'moreq' => [ 'type' => Type::float(), 'description' => 'Attribute more or equal.' ], // TODO: SAME AS gteq???
+                    'gt' => [ 'type' => Type::float(), 'description' => 'Attribute greater than value.' ],
+                    'lt' => [ 'type' => Type::float(), 'description' => 'Attribute less than value.' ],
+                    'gteq' => [ 'type' => Type::float(), 'description' => 'Attribute greater than or equal to value.' ],
+                    'lteq' => [ 'type' => Type::float(), 'description' => 'Attribute less than or equal to value.' ],
+                    'finset' => [ 'type' => Type::string(), 'description' => 'Attribute in set of comma separated values.' ],
                 ]
             ]),
             'ID' => new InputObjectType([
                 'name' => 'IDFilter',
                 'description' => 'ID value filter constraints',
                 'fields' => [
-                    'eq' => [ 'type' => Type::id(), 'description' => 'Attribute = constant.' ],
+                    'eq' => [ 'type' => Type::id(), 'description' => 'Attribute equals constant.' ],
+                    'neq' => [ 'type' => Type::id(), 'description' => 'Attribute does not equal constant.' ],
+                    'in' => [ 'type' => Type::listOf(Type::nonNull(Type::id())), 'description' => 'Attribute in list of values.' ],
+                    'nin' => [ 'type' => Type::listOf(Type::nonNull(Type::id())), 'description' => 'Attribute not in list of values.' ],
+                    'notnull' => [ 'type' => Type::boolean(), 'description' => 'Attribute is not null (value MUST be "true").' ],
+                    'null' => [ 'type' => Type::boolean(), 'description' => 'Attribute not null (value MUST be "true").' ],
+                    'finset' => [ 'type' => Type::string(), 'description' => 'Attribute in set of comma separated values.' ],
                 ]
             ]),
             'Boolean' => new InputObjectType([
                 'name' => 'BooleanFilter',
                 'description' => 'Boolean value filter constraints',
                 'fields' => [
-                    'eq' => [ 'type' => Type::boolean(), 'description' => 'Attribute = constant.' ],
+                    'eq' => [ 'type' => Type::boolean(), 'description' => 'Attribute equals constant.' ],
+                    'neq' => [ 'type' => Type::boolean(), 'description' => 'Attribute does not equal constant.' ],
+                    'in' => [ 'type' => Type::listOf(Type::nonNull(Type::boolean())), 'description' => 'Attribute in list of values.' ],
+                    'nin' => [ 'type' => Type::listOf(Type::nonNull(Type::boolean())), 'description' => 'Attribute not in list of values.' ],
+                    'notnull' => [ 'type' => Type::boolean(), 'description' => 'Attribute is not null (value MUST be "true").' ],
+                    'null' => [ 'type' => Type::boolean(), 'description' => 'Attribute not null (value MUST be "true").' ],
+                    'finset' => [ 'type' => Type::string(), 'description' => 'Attribute in set of comma separated values.' ],
                 ]
             ]),
         ];

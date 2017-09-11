@@ -25,6 +25,13 @@ class QueryType extends ObjectType
     /** @var \Magento\Framework\Api\SearchCriteriaInterfaceFactory */
     private $searchCriteriaFactory;
 
+    //TODO: Why is FilterBuilder in Api but FilterGroupBuilder in Search\Api?
+    /** @var \Magento\Framework\Api\FilterBuilder */
+    private $filterBuilder;
+
+    /** @var \Magento\Framework\Api\Search\FilterGroupBuilder */
+    private $filterGroupBuilder;
+
     /**
      * Constructor.
      * @param \AlanKent\GraphQL\Types\AutoEntitiesTypeFactory $autoFactory
@@ -37,11 +44,15 @@ class QueryType extends ObjectType
         \AlanKent\GraphQL\Types\EntitiesTypeFactory $entityTypeFactory,
         \AlanKent\GraphQL\Persistence\EntityManager $entityManager,
         \AlanKent\GraphQL\Types\TypeRegistry $typeRegistry,
-        \Magento\Framework\Api\SearchCriteriaInterfaceFactory $searchCriteriaFactory
+        \Magento\Framework\Api\SearchCriteriaInterfaceFactory $searchCriteriaFactory,
+        \Magento\Framework\Api\FilterBuilder $filterBuilder,
+        \Magento\Framework\Api\Search\FilterGroupBuilder $filterGroupBuilder
     ) {
         $this->entityManager = $entityManager;
         $this->typeRegistry = $typeRegistry;
         $this->searchCriteriaFactory = $searchCriteriaFactory;
+        $this->filterBuilder = $filterBuilder;
+        $this->filterGroupBuilder = $filterGroupBuilder;
 
         $config = [
             'name' => 'Query',
@@ -54,24 +65,6 @@ class QueryType extends ObjectType
                         return 'Your graphql-php endpoint is ready now! Use GraphiQL to browse API';
                     }
                 ],
-                //'me' => new UserType()
-                /*
-                'catalog' => [
-                    'type' => new MagentoCatalogType(),
-                    'description' => 'Magento Catalog module type',
-                    'resolve' => function() { return 'dummy'; }
-                ],
-                */
-//                'entities' => [
-//                    'type' => $entityTypeFactory->create(),
-//                    'description' => 'All entities exposed for querying.',
-//                    'resolve' => function() { return 'dummy'; }
-//                ],
-                //'auto' => [
-                    //'type' => $autoFactory->create(),
-                    //'description' => 'Service contract entities.',
-                    //'resolve' => function() { return 'dummy'; }
-                //],
                 'customerData' => [
                     'type' => $this->typeRegistry->makeOutputType('Customer'),
                     'description' => 'Retrieve customer data',
@@ -162,7 +155,7 @@ class QueryType extends ObjectType
                     ],
                     'resolve' => function($val, $args, $context, $info) {
 
-                        $req = $this->parseRequest($info, 'Product');
+                        $req = $this->parseRequest($info);
 
                         // Lazy load at runtime.
                         /** @var Context $context */
@@ -182,6 +175,10 @@ class QueryType extends ObjectType
                             $pageSize = $start + $limit;
                         }
                         $searchCriteria = $this->searchCriteriaFactory->create();
+                        if (isset($args['filter'])) {
+                            $filterGroups = $this->convertToFilterGroups($args['filter']);
+                            $searchCriteria->setFilterGroups($filterGroups);
+                        }
                         // TODO: CANNOT DO OFFSET AND COUNT CORRECTLY! $searchCriteria->setPageCount($count);
                         $searchCriteria->setPageSize($pageSize);
                         $searchCriteria->setCurrentPage(0);
@@ -205,14 +202,6 @@ class QueryType extends ObjectType
 //            }
         ];
 
-//        foreach ($this->entityManager->getNames() as $entityName) {
-//            $entitySchema = $this->entityManager->getEntitySchema($entityName);
-//            $config[] = [
-//                'type' => $this->typeRegistry->makeType($entitySchema['type']),
-//                'description' => $entitySchema['description'],
-//                //'resolve' => function() { return 'dummy'; }
-//            ];
-//        }
         parent::__construct($config);
     }
 
@@ -297,17 +286,150 @@ class QueryType extends ObjectType
         }
     }
 
-//    public function hello()
-//    {
-//        return 'Your graphql-php endpoint is ready now! Use GraphiQL to browse API';
-//    }
+    /**
+     * Convert GraphQL input type for filters to Magento search criteria
+     * filter groups.
+     * TODO: This should move to separate class
+     * @return \Magento\Framework\Api\Search\FilterGroup[]
+     */
+    private function convertToFilterGroups($filter)
+    {
+        // Build up an AND/OR tree of filter conditions.
+        $ast = $this->parseFilters($filter);
 
-//    public function me()
-//    {
-//        $me = new UserType();
-//        $me->id = '1';
-//        $me->firstName = 'Alan';
-//        $me->lastName = 'Kent';
-//        return $me;
-//    }
+        // Convert to single AND above OR nodes (filter groups above filters),
+        // reorganizating the tree as required.
+        $ast = $this->normalizeFilterTree($ast);
+
+        // Convert tree to array of filter groups above arrays of filters.
+        $ast = $this->convertAstToFilterGroups($ast);
+
+        return $ast;
+    }
+
+    /**
+     * Parse the data structure listing all attribute contraints and convert
+     * into an AND/OR tree above Filter instances.
+     * @param $filter
+     * @return array
+     */
+    private function parseFilters($filter)
+    {
+        $op = 'AND';
+        $children = [];
+        foreach ($filter as $name => $value) {
+            if ($name === '_children') {
+                foreach ($value as $child) {
+                    $children[] = $this->parseFilters($child);
+                }
+            } else if ($name === '_join') {
+                $op = ($value == 'ANY') ? 'OR' : 'AND';
+            } else {
+                $children[] = $this->parseConstraint($name, $value);
+            }
+        }
+        return [ 'operator' => $op, 'children' => $children ];
+    }
+
+    /**
+     * Parse {eq:3} or {like:"%06"} and convert to a Filter
+     * @param $name
+     * @param $value
+     * @return \Magento\Framework\Api\Filter
+     * @throws \Exception
+     */
+    private function parseConstraint($name, $value): \Magento\Framework\Api\Filter
+    {
+        if (count($value) == 2) {
+            throw new \Exception("TODO: from/to filter parsing not implemented yet.");
+        }
+        //TODO: No checking for entity reference attributes - this code assumes attributes are all atomic.
+        if (count($value) != 1) {
+            throw new \Exception("Only one condition can be specified at a time in filter constraint.");
+        }
+        foreach ($value as $n => $v) {
+            return $this->filterBuilder
+                ->setField($name)
+                ->setValue($v)
+                ->setConditionType($n)
+                ->create();
+        }
+        return null; // Quieten warnings, should never be reached
+    }
+
+    /**
+     * Normalize the filter tree so we end up with AND above OR nodes.
+     * @param $ast
+     * @return array
+     * @throws \Exception
+     */
+    private function normalizeFilterTree($ast)
+    {
+        // TODO: This needs to convert "(A AND B) OR C" to "(A OR C) AND (B OR C)"
+        // TODO: For now, just inject extra AND or OR node if missing, and give up on complicated queries.
+
+        $checkAgain = true;
+        while ($checkAgain) {
+            $checkAgain = false;
+
+            // Insert AND node at root of tree if required.
+            if (!is_array($ast) || $ast['operator'] !== 'AND') {
+                $ast = ['operator' => 'AND', 'children' => [$ast]];
+                $checkAgain = true;
+                continue;
+            }
+
+            // If AND above AND, merge them.
+            $newChildren = [];
+            foreach ($ast['children'] as $idx => $andChild) {
+                if (is_array($andChild) && $andChild['operator'] === 'AND') {
+                    foreach ($andChild['children'] as $c) {
+                        $newChildren[] = $c;
+                        $checkAgain = true;
+                    }
+                } else {
+                    $newChildren[] = $andChild;
+                }
+            }
+            if ($checkAgain) {
+                $ast['children'] = $newChildren;
+                continue;
+            }
+
+            // We know we don't have AND above AND, so non-array children must be filters.
+            // Wrap any nested filters in OR nodes.
+            foreach ($ast['children'] as $idx => $andChild) {
+                if (!is_array($andChild)) {
+                    $ast['children'][$idx] = ['operator' => 'OR', 'children' => [$andChild]];
+                }
+            }
+            // TODO: This code is not merging OR above OR yet.
+            foreach ($ast['children'] as $andIndex => $andChild) {
+                foreach ($andChild['children'] as $orIndex => $orChild) {
+                    if (is_array($orChild)) {
+                        throw new \Exception('TODO: Filter condition too complex - must be ALL above ANY only.');
+                    }
+                }
+            }
+        }
+        return $ast;
+    }
+
+    /**
+     * Assuming a perfect tree of AND above OR above constraints, convert to
+     * Magento search criteria.
+     * @param $ast
+     * @return \Magento\Framework\Api\Search\FilterGroup[]
+     */
+    private function convertAstToFilterGroups($ast)
+    {
+        $filterGroups = [];
+        foreach ($ast['children'] as $andNode) {
+            foreach ($andNode['children'] as $orNode) {
+                $this->filterGroupBuilder->addFilter($orNode);
+            }
+            $filterGroups[] = $this->filterGroupBuilder->create();
+        }
+        return $filterGroups;
+    }
 }
