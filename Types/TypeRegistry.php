@@ -399,14 +399,14 @@ class TypeRegistry
             'fields' => function() use($entityDef) {
                 $fields = [];
 
-                $fields['_join'] = [
-                    'type' => AnyAllType::singleton(),
-                    'description' => 'Join multiple conditions via AND or OR connectors'
+                $fields['_and'] = [
+                    'type' => Type::listOf(Type::nonNull($this->makeFilterType($entityDef->getName()))),
+                    'description' => 'Join multiple conditions via AND.'
                 ];
 
-                $fields['_children'] = [
+                $fields['_or'] = [
                     'type' => Type::listOf(Type::nonNull($this->makeFilterType($entityDef->getName()))),
-                    'description' => 'Join multiple conditions via AND or OR connectors'
+                    'description' => 'Join multiple conditions via OR.'
                 ];
 
                 foreach ($entityDef->getAttributes() as $attribute) {

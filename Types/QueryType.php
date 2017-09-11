@@ -315,20 +315,29 @@ class QueryType extends ObjectType
      */
     private function parseFilters($filter)
     {
-        $op = 'AND';
-        $children = [];
-        foreach ($filter as $name => $value) {
-            if ($name === '_children') {
-                foreach ($value as $child) {
-                    $children[] = $this->parseFilters($child);
-                }
-            } else if ($name === '_join') {
-                $op = ($value == 'ANY') ? 'OR' : 'AND';
-            } else {
-                $children[] = $this->parseConstraint($name, $value);
-            }
+        if (count($filter) != 1) {
+            throw new \Exception("Filters must contain exactly one attribute condition per filter.");
         }
-        return [ 'operator' => $op, 'children' => $children ];
+        $name = array_keys($filter)[0];
+        $value = $filter[$name];
+
+        if ($name === '_and') {
+            $children = [];
+            foreach ($value as $child) {
+                $children[] = $this->parseFilters($child);
+            }
+            return [ 'operator' => 'AND', 'children' => $children ];
+        }
+
+        if ($name === '_or') {
+            $children = [];
+            foreach ($value as $child) {
+                $children[] = $this->parseFilters($child);
+            }
+            return [ 'operator' => 'OR', 'children' => $children ];
+        }
+
+        return $this->parseConstraint($name, $value);
     }
 
     /**
@@ -343,18 +352,19 @@ class QueryType extends ObjectType
         if (count($value) == 2) {
             throw new \Exception("TODO: from/to filter parsing not implemented yet.");
         }
-        //TODO: No checking for entity reference attributes - this code assumes attributes are all atomic.
+        //TODO: No checking for entity reference attributes yet - this code assumes attributes are all atomic.
         if (count($value) != 1) {
             throw new \Exception("Only one condition can be specified at a time in filter constraint.");
         }
-        foreach ($value as $n => $v) {
-            return $this->filterBuilder
-                ->setField($name)
-                ->setValue($v)
-                ->setConditionType($n)
-                ->create();
-        }
-        return null; // Quieten warnings, should never be reached
+
+        // We know there is exactly one operator in the array.
+        $n = array_keys($value)[0];
+        $v = $value[$n];
+        return $this->filterBuilder
+            ->setField($name)
+            ->setValue($v) // Not strictly needed for "null" and "notnull"
+            ->setConditionType($n)
+            ->create();
     }
 
     /**
